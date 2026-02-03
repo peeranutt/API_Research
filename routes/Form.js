@@ -144,7 +144,7 @@ router.get("/form/:user_id", async (req, res) => {
     const [form] = await db.query(sql, params);
 
     if (form.length === 0) {
-      return res.status(404).json({ message: "has not data" });
+      return res.status(200).json([]);
     }
 
     res.status(200).json(form);
@@ -241,7 +241,7 @@ router.get("/allForms", async (req, res) => {
     const [form] = await db.query(sql, params);
 
     if (form.length === 0) {
-      return res.status(404).json({ message: "has not data" });
+      return res.status(200).json([]);
     }
     console.log("form", form);
 
