@@ -478,14 +478,21 @@ router.get("/confer/calc/:id", async (req, res) => {
 
 router.get("/page_charge/calc/:id", async (req, res) => {
     const conditionPC = await getConditionPC();
+
+    if (!conditionPC || conditionPC.length === 0) {
+      return res.status(400).json({
+        message: "ยังไม่มีข้อมูล ConditionPC กรุณาตั้งค่าเงื่อนไขก่อน"
+      });
+    }
+
     const {
-        natureAmount,
-        mdpiQuartile1,
-        mdpiQuartile2,
-        otherQuartile1,
-        otherQuartile2,
-        otherQuartile3,
-        otherQuartile4
+      natureAmount,
+      mdpiQuartile1,
+      mdpiQuartile2,
+      otherQuartile1,
+      otherQuartile2,
+      otherQuartile3,
+      otherQuartile4
     } = conditionPC[0];
     
     const { id } = req.params;
