@@ -19,7 +19,7 @@ router.post("/opinionPC", async (req, res) => {
           (research_id, associate_id, dean_id, pageC_id, p_research_result, p_research_reason, p_associate_result,
            p_dean_acknowledge, p_dean_result, research_doc_submit_date,
           associate_doc_submit_date, dean_doc_submit_date)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         data.research_id || null,
         data.associate_id || null,

@@ -167,7 +167,7 @@ router.get("/allForms", async (req, res) => {
     }
 
     let sql = `
-      SELECT f.form_id, f.form_type, f.conf_id, f.pageC_id, f.return_to, f.return_note, f.past_return,
+      SELECT f.form_id, f.form_type, f.conf_id, f.pageC_id, f.return_to, f.return_note, f.past_return, f.date_form_edit,
       f.kris_id, f.form_status,b.budget_year, b.amount_approval, b.Research_kris_amount, u.user_nameth
       ,COALESCE(k.user_id, c.user_id, p.user_id) AS user_id
       ,COALESCE(k.name_research_th, c.conf_research, p.article_title) AS article_title
