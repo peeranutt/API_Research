@@ -52,8 +52,12 @@ router.post("/budget", async (req, res) => {
 
       await database.commit(); //commit transaction
 
-      //send email to user
-      const recipients = ["64070075@it.kmitl.ac.th"]; //getuser[0].user_email
+      const getOfficer = await database.query(
+        `SELECT user_email FROM Users WHERE user_role = "hr"`
+      )
+
+      //send email to finance
+      const recipients = [getOfficer[0][0].user_email];;
       const subject =
         "แจ้งเตือนจากระบบสนับสนุนงานวิจัย มีแบบฟอร์มรอการอนุมัติและตรวจสอบ";
       const message = `
@@ -110,8 +114,17 @@ router.put("/withdraw/conference/:id", async (req, res) => {
     );
     console.log("updateresult :", updateWithdrawMoney);
 
+    const [getUser] = await db.query(
+      `SELECT u.user_email 
+      FROM Conference c 
+      JOIN Users u ON c.user_id = u.user_id
+      WHERE c.conf_id = ?`,
+      [id]
+    )
+    console.log("getuser", getUser);
+
     //send email to user
-    const recipients = ["64070075@it.kmitl.ac.th"]; //getuser[0].user_email
+    const recipients = [getUser[0].user_email]; //getuser[0].user_email
     const subject =
       "แจ้งเตือนจากระบบสนับสนุนงานวิจัย มีการตั้งเบิกแบบฟอร์มขอรับการสนับสนุนเข้าร่วมประชุมเรียบร้อย";
     const message = `
@@ -177,8 +190,36 @@ router.put("/updateBudget/:id", async (req, res) => {
 
       await database.commit(); //commit transaction
 
+      if (data.form_status != "return"){
+        const getEmail = await database.query(
+          `SELECT u.user_email 
+          FROM Form f
+          JOIN Users u ON f.form_status = u.user_role
+          WHERE form_id = ?`,
+          [data.form_id]
+        )
+        console.log("getEmail not return", getEmail)
+      } else if (data.form_status == "return") {
+        if (data.return_to == "professor"){
+          const getEmail = await database.query(
+            `SELECT user_email FROM Users WHRER user_id = ?`,
+            [data.user_id]
+          )
+          console.log("getEmail return_to == professor", getEmail)
+        } else {
+          const getEmail = await database.query(
+            `SELECT u.user_email 
+            FROM Form f
+            JOIN Users u ON f.return_to = u.user_role
+            WHERE form_id = ?`,
+            [data.form_id]
+          )
+          console.log("getEmail return not professor", getEmail)
+        }
+      }
+
       //send email to user
-      const recipients = ["64070075@it.kmitl.ac.th"]; //getuser[0].user_email
+      const recipients = [getEmail[0][0].user_email] //getuser[0].user_email
       const subject =
         "แจ้งเตือนจากระบบสนับสนุนงานวิจัย มีแบบฟอร์มรอการอนุมัติและตรวจสอบ";
       const message = `
@@ -229,8 +270,18 @@ router.put("/withdraw/pageCharge/:id", async (req, res) => {
       [updates.withdraw, findID[0].form_id]
     );
     console.log("updateresult :", updateWithdrawMoney);
+
+    const [getUser] = await db.query(
+      `SELECT u.user_email 
+      FROM Page_Charge p
+      JOIN Users u ON p.user_id = u.user_id
+      WHERE p.pageC_id = ?`,
+      [id]
+    )
+    console.log("getuser", getUser);
+
     //send email to user
-    const recipients = ["64070075@it.kmitl.ac.th"]; //getuser[0].user_email
+    const recipients = [getUser[0].user_email]; //getuser[0].user_email
     const subject =
       "แจ้งเตือนจากระบบสนับสนุนงานวิจัย มีการตั้งเบิกแบบฟอร์มขอรับการสนับสนุนการตีพิมพ์ในวารสารเรียบร้อย";
     const message = `

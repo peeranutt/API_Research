@@ -53,8 +53,39 @@ router.post("/opinionPC", async (req, res) => {
 
     await database.commit(); //commit transaction
 
+    if (data.form_status != "return"){
+        const getEmail = await database.query(
+          `SELECT u.user_email 
+          FROM Form f
+          JOIN Users u ON f.form_status = u.user_role
+          WHERE form_id = ?`,
+          [data.form_id]
+        )
+        console.log("getEmail not return", getEmail)
+      } else if (data.form_status == "return") {
+        if (data.return_to == "professor"){
+          const getEmail = await database.query(
+            `SELECT u.user_email 
+            FROM Page_Charge p 
+            JOIN Users u ON p.user_id = u.user_id
+            WHERE pageC_id = ?`,
+            [data.pageC_id]
+          )
+          console.log("getEmail return_to == professor", getEmail)
+        } else {
+          const getEmail = await database.query(
+            `SELECT u.user_email 
+            FROM Form f
+            JOIN Users u ON f.return_to = u.user_role
+            WHERE form_id = ?`,
+            [data.form_id]
+          )
+          console.log("getEmail return not professor", getEmail)
+        }
+      }
+
     //send email to user
-    const recipients = ["64070075@it.kmitl.ac.th"]; //getuser[0].user_email
+    const recipients = [getEmail[0][0].user_email]; //getuser[0].user_email
     const subject =
       "แจ้งเตือนจากระบบสนับสนุนงานวิจัย มีแบบฟอร์มขอรับการสนับสนุนการตีพิมพ์ในวารสารรอการอนุมัติและตรวจสอบ";
     const message = `
@@ -113,8 +144,39 @@ router.put("/opinionPC/:id", async (req, res) => {
 
     await database.commit(); //commit transaction
 
+    if (data.form_status != "return"){
+        const getEmail = await database.query(
+          `SELECT u.user_email 
+          FROM Form f
+          JOIN Users u ON f.form_status = u.user_role
+          WHERE form_id = ?`,
+          [data.form_id]
+        )
+        console.log("getEmail not return", getEmail)
+      } else if (data.form_status == "return") {
+        if (data.return_to == "professor"){
+          const getEmail = await database.query(
+            `SELECT u.user_email 
+            FROM Page_Charge p 
+            JOIN Users u ON p.user_id = u.user_id
+            WHERE pageC_id = ?`,
+            [data.pageC_id]
+          )
+          console.log("getEmail return_to == professor", getEmail)
+        } else {
+          const getEmail = await database.query(
+            `SELECT u.user_email 
+            FROM Form f
+            JOIN Users u ON f.return_to = u.user_role
+            WHERE form_id = ?`,
+            [data.form_id]
+          )
+          console.log("getEmail return not professor", getEmail)
+        }
+      }
+
     //send email to user
-    const recipients = ["64070075@it.kmitl.ac.th"]; //getuser[0].user_email
+    const recipients = [getEmail[0][0].user_email]; //getuser[0].user_email
     const subject =
       "แจ้งเตือนจากระบบสนับสนุนงานวิจัย มีแบบฟอร์มขอรับการสนับสนุนการตีพิมพ์ในวารสารรอการอนุมัติและตรวจสอบ";
     const message = `

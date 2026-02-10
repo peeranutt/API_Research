@@ -380,6 +380,10 @@ router.post("/conference",
       );
       console.log("notification_result", notification_result);
 
+      const getOfficer = await database.query(
+        `SELECT user_email FROM Users WHERE user_role = "hr"`
+      )
+
       const getuser = await database.query(
         `SELECT user_nameth FROM Users WHERE user_id = ?`,
         [conferenceData.user_id]
@@ -388,7 +392,8 @@ router.post("/conference",
 
       await database.commit(); //commit transaction
 
-      const recipients = ["64070075@it.kmitl.ac.th"];
+      // const recipients = ["64070075@it.kmitl.ac.th"];
+      const recipients = [getOfficer[0][0].user_email];;
       const subject =
         "แจ้งเตือนจากระบบสนับสนุนงานวิจัย มีการส่งแบบฟอร์มขอรับการสนับสนุนเข้าร่วมประชุม";
       const message = `
@@ -517,6 +522,10 @@ router.put("/editedFormConfer/:id",
       )
       console.log("updates.professor_reedit", updates.professor_reedit)
 
+      const getOfficer = await database.query(
+        `SELECT user_email FROM Users WHERE user_role = "hr"`
+      )
+
     const [getuser] = await db.query(
       `
       SELECT u.user_email, u.user_nameth, c.conf_research
@@ -544,7 +553,7 @@ router.put("/editedFormConfer/:id",
       await sendEmail(recipients, subject, message);
     } else if (updates.professor_reedit === true) {
       //send email to hr
-      const recipients = ["64070075@it.kmitl.ac.th"]; //getuser[0].user_email
+      const recipients = [getOfficer[0][0].user_email];
       const subject =
         "แจ้งเตือนจากระบบสนับสนุนงานวิจัย ผู้ขออนุมัติได้ทำการแก้ไขแบบฟอร์มขอรับการสนับสนุนเข้าร่วมประชุม";
       const message = `

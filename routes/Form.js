@@ -372,7 +372,39 @@ router.put("/updatestatus_confer/:id", async (req, res) => {
     );
     console.log("updateStatus_result :", updateStatus);
 
-    const recipients = ["64070075@it.kmitl.ac.th"];
+    if (data.form_status != "return"){
+        const getEmail = await database.query(
+          `SELECT u.user_email 
+          FROM Form f
+          JOIN Users u ON f.form_status = u.user_role
+          WHERE form_id = ?`,
+          [data.form_id]
+        )
+        console.log("getEmail not return", getEmail)
+      } else if (data.form_status == "return") {
+        if (data.return_to == "professor"){
+          const getEmail = await database.query(
+            `SELECT u.user_email 
+            FROM Conference c 
+            JOIN Users u ON c.user_id = u.user_id
+            WHERE conf_id = ?`,
+            [id]
+          )
+          console.log("getEmail return_to == professor", getEmail)
+        } else {
+          const getEmail = await database.query(
+            `SELECT u.user_email 
+            FROM Form f
+            JOIN Users u ON f.return_to = u.user_role
+            WHERE form_id = ?`,
+            [data.form_id]
+          )
+          console.log("getEmail return not professor", getEmail)
+        }
+      }
+
+    //send email to user
+    const recipients = [getEmail[0][0].user_email];
     const subject =
       "แจ้งเตือนจากระบบสนับสนุนงานวิจัย มีการตีกลับแบบฟอร์มขอรับการสนับสนุนเข้าร่วมประชุม";
     const message = `
@@ -402,7 +434,39 @@ router.put("/updatestatus_pageC/:id", async (req, res) => {
     );
     console.log("updateStatus_result :", updateStatus);
 
-    const recipients = ["64070075@it.kmitl.ac.th"];
+    if (data.form_status != "return"){
+        const getEmail = await database.query(
+          `SELECT u.user_email 
+          FROM Form f
+          JOIN Users u ON f.form_status = u.user_role
+          WHERE form_id = ?`,
+          [data.form_id]
+        )
+        console.log("getEmail not return", getEmail)
+      } else if (data.form_status == "return") {
+        if (data.return_to == "professor"){
+          const getEmail = await database.query(
+            `SELECT u.user_email 
+            FROM Conference c 
+            JOIN Users u ON c.user_id = u.user_id
+            WHERE conf_id = ?`,
+            [data.id]
+          )
+          console.log("getEmail return_to == professor", getEmail)
+        } else {
+          const getEmail = await database.query(
+            `SELECT u.user_email 
+            FROM Form f
+            JOIN Users u ON f.return_to = u.user_role
+            WHERE form_id = ?`,
+            [data.form_id]
+          )
+          console.log("getEmail return not professor", getEmail)
+        }
+      }
+
+    //send email to user
+    const recipients = [getEmail[0][0].user_email];
     const subject =
       "แจ้งเตือนจากระบบสนับสนุนงานวิจัย มีการตีกลับแบบฟอร์มขอรับการสนับสนุนเข้าร่วมประชุม";
     const message = `
