@@ -219,7 +219,7 @@ router.put("/opinionConf/:id", async (req, res) => {
       );
     }
     //send email to user
-    const recipients = [getEmail[0][0].user_email]; //getuser[0].user_email
+    const recipients = [getEmail[0].user_email]; //getuser[0].user_email
     const subject =
       "แจ้งเตือนจากระบบสนับสนุนงานวิจัย มีแบบฟอร์มขอรับการสนับสนุนเข้าร่วมประชุมรอการอนุมัติและตรวจสอบ";
     const message = `
