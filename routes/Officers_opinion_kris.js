@@ -39,16 +39,21 @@ router.post("/opinionKris", async (req, res) => {
 
     await database.commit(); //commit transaction
 
-    //send email to user
-    const recipients = ["64070075@it.kmitl.ac.th"]; //getuser[0].user_email
-    const subject =
-      "แจ้งเตือนจากระบบสนับสนุนงานวิจัย มีแบบฟอร์มงานวิจัยรอการอนุมัติและตรวจสอบ";
-    const message = `
-      มีแบบฟอร์มงานวิจัยรอการอนุมัติและตรวจสอบ โปรดเข้าสู่ระบบสนับสนุนงานบริหารงานวิจัยเพื่อทำการอนุมัติและตรวจสอบข้อมูล
-      กรุณาอย่าตอบกลับอีเมลนี้ เนื่องจากเป็นระบบอัตโนมัติที่ไม่สามารถตอบกลับได้`;
+    // const [getUser] = await database.query(
+    //   `SELECT user_eamil FROM Users WHERE user_id = ?`,
+    //   [data.user_id]
+    // )
 
-    await sendEmail(recipients, subject, message);
-    console.log("Email sent successfully");
+    // //send email to user
+    // const recipients = [getUser[0].user_email];  //getuser[0].user_email
+    // const subject =
+    //   "แจ้งเตือนจากระบบสนับสนุนงานวิจัย มีแบบฟอร์มงานวิจัยรอการอนุมัติและตรวจสอบ";
+    // const message = `
+    //   มีแบบฟอร์มงานวิจัยรอการอนุมัติและตรวจสอบ โปรดเข้าสู่ระบบสนับสนุนงานบริหารงานวิจัยเพื่อทำการอนุมัติและตรวจสอบข้อมูล
+    //   กรุณาอย่าตอบกลับอีเมลนี้ เนื่องจากเป็นระบบอัตโนมัติที่ไม่สามารถตอบกลับได้`;
+
+    // await sendEmail(recipients, subject, message);
+    // console.log("Email sent successfully");
 
     res.status(200).json({ success: true, message: "Success" });
   } catch (error) {

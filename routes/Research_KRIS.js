@@ -215,6 +215,9 @@ router.post("/kris", upload.single("kris_file"), async (req, res) => {
     );
     console.log("notification_result", notification_result);
 
+    const getOfficer = await database.query(
+      `SELECT user_email FROM Users WHERE user_role = "research"`
+    )
     const getuser = await database.query(
       `SELECT user_nameth FROM Users WHERE user_id = ?`,
       [kris_data.user_id]
@@ -224,7 +227,7 @@ router.post("/kris", upload.single("kris_file"), async (req, res) => {
     await database.commit(); //commit transaction
 
     //send email to user
-    const recipients = ["64070075@kmitl.ac.th"]; //getuser[0].user_email
+    const recipients = [getOfficer[0][0].user_email];
     const subject = "แจ้งเตือนจากระบบสนับสนุนงานวิจัย มีการส่งแบบฟอร์มงานวิจัย";
     const message = `
       มีการส่งแบบฟอร์มงานวิจัยจาก ${getuser[0][0].user_nameth} ชื่อโครงการ: ${kris_data.name_research_th} กำลังรอการอนุมัติและตรวจสอบ โปรดเข้าสู่ระบบสนับสนุนงานบริหารงานวิจัยเพื่อทำการอนุมัติและตรวจสอบข้อมูล

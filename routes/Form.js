@@ -153,27 +153,38 @@ router.get("/form/:user_id", async (req, res) => {
   }
 });
 
-
 router.get("/allForms", async (req, res) => {
   console.log("allForms");
+
   try {
     let { fiscalYear, type, typeStatus } = req.query;
-    console.log("Query:", req.query);
-    // ปีงบประมาณปัจจุบัน (พ.ศ.)
+
     const currentYear = new Date().getFullYear() + 543;
-    // ถ้าไม่ส่งปีมา → ใช้ปีปัจจุบัน
-    if (!fiscalYear) {
-      fiscalYear = currentYear;
-    }
+    fiscalYear = fiscalYear || currentYear;
+
+    const STATUS_GROUPS = {
+      waitingApproval: [
+        "hr",
+        "research",
+        "finance",
+        "pending",
+        "associate",
+        "dean",
+        "attendMeeting",
+        "waitingApproval",
+      ],
+    };
 
     let sql = `
-      SELECT f.form_id, f.form_type, f.conf_id, f.pageC_id, f.return_to, f.return_note, f.past_return, f.date_form_edit,
-      f.kris_id, f.form_status,b.budget_year, b.amount_approval, b.Research_kris_amount, u.user_nameth
-      ,COALESCE(k.user_id, c.user_id, p.user_id) AS user_id
-      ,COALESCE(k.name_research_th, c.conf_research, p.article_title) AS article_title
-      ,COALESCE(c.conf_name, p.journal_name) AS article_name
-      ,COALESCE(c.doc_submit_date, p.doc_submit_date, k.doc_submit_date) AS doc_submit_date
-      ,u.user_nameth
+      SELECT f.form_id, f.form_type, f.conf_id, f.pageC_id, 
+      f.return_to, f.return_note, f.past_return, f.date_form_edit,
+      f.kris_id, f.form_status,
+      b.budget_year, b.amount_approval, b.Research_kris_amount,
+      COALESCE(k.user_id, c.user_id, p.user_id) AS user_id,
+      COALESCE(k.name_research_th, c.conf_research, p.article_title) AS article_title,
+      COALESCE(c.conf_name, p.journal_name) AS article_name,
+      COALESCE(c.doc_submit_date, p.doc_submit_date, k.doc_submit_date) AS doc_submit_date,
+      u.user_nameth
       FROM Form f
       LEFT JOIN Research_KRIS k ON f.kris_id = k.kris_id
       LEFT JOIN Conference c ON f.conf_id = c.conf_id
@@ -181,75 +192,71 @@ router.get("/allForms", async (req, res) => {
       LEFT JOIN Users u ON u.user_id = COALESCE(k.user_id, c.user_id, p.user_id)
       LEFT JOIN Budget b ON f.form_id = b.form_id
       WHERE (b.budget_year = ? OR b.budget_year IS NULL)
-      `;
+    `;
+
     const params = [fiscalYear];
 
-    // ถ้า type != all ให้ filter เพิ่ม
+    // FILTER TYPE
     if (type && type !== "all") {
       sql += ` AND f.form_type = ?`;
       params.push(type);
     }
 
-    // filter typeStatus
+    // FILTER STATUS
     if (typeStatus && typeStatus !== "all") {
-      const statuses = typeStatus.split(",").map(s => s.trim());
-      console.log("statuses", statuses);
-
-      // แยกสถานะ 'return' ออกจากสถานะอื่น
-      const returnIndex = statuses.indexOf("return");
-      const isReturning = returnIndex !== -1;
-      let otherStatuses = [...statuses];
-
-      if (isReturning) {
-        otherStatuses.splice(returnIndex, 1); // ลบ 'return' ออกจากกลุ่มสถานะปกติ
-      }
-
-      // สร้างเงื่อนไข WHERE
       let statusConditions = [];
 
-      // 1. เงื่อนไขสำหรับสถานะที่ไม่ใช่ 'return' (เช่น 'research', 'hr', 'finance', 'pending')
-      if (otherStatuses.length > 0) {
-        const placeholders = otherStatuses.map(() => "?").join(",");
+      // ถ้าเป็น group
+      if (STATUS_GROUPS[typeStatus]) {
+        const groupStatuses = STATUS_GROUPS[typeStatus];
+        const placeholders = groupStatuses.map(() => "?").join(",");
         statusConditions.push(`f.form_status IN (${placeholders})`);
-        params.push(...otherStatuses);
+        params.push(...groupStatuses);
+      } 
+      else {
+        const statuses = typeStatus.split(",").map(s => s.trim());
+
+        const isReturning = statuses.includes("return");
+        const normalStatuses = statuses.filter(s => s !== "return");
+
+        // สถานะปกติ
+        if (normalStatuses.length > 0) {
+          const placeholders = normalStatuses.map(() => "?").join(",");
+          statusConditions.push(`f.form_status IN (${placeholders})`);
+          params.push(...normalStatuses);
+        }
+
+        // สถานะ return
+        if (isReturning) {
+          const roleToMatch =
+            normalStatuses[0] === "pending"
+              ? "finance"
+              : normalStatuses[0];
+
+          statusConditions.push(
+            `(f.form_status = 'return' AND f.return_to = ?)`
+          );
+          params.push(roleToMatch);
+        }
       }
 
-      // 2. เงื่อนไขสำหรับสถานะ 'return'
-      if (isReturning) {
-        // เมื่อสถานะเป็น 'return' ต้องตรวจสอบว่า f.return_to เป็นบทบาทใด
-        // เนื่องจาก typeStatus ถูกส่งมาเป็นบทบาทของผู้ใช้, เราจึงใช้บทบาทนั้นเป็นเงื่อนไข
-        // ตัวอย่าง: ถ้า typeStatus คือ 'research,return' บทบาทที่ต้องการคือ 'research'
-        console.log("otherStatuses", otherStatuses);
-
-        const userRole = otherStatuses.length > 0 ? otherStatuses[0] : statuses[0];
-
-        // สำหรับ 'finance' ที่ส่งมาเป็น 'finance,pending' เราจะใช้ 'finance' เป็นตัวเทียบ
-        const roleToMatch = userRole === 'pending' ? 'finance' : userRole;
-
-        statusConditions.push(`(f.form_status = 'return' AND f.return_to = ?)`);
-        params.push(roleToMatch);
-        console.log("Return to role match:", roleToMatch);
-      }
-
-      // รวมเงื่อนไขทั้งหมดเข้าด้วยกัน
       if (statusConditions.length > 0) {
         sql += ` AND (${statusConditions.join(" OR ")})`;
       }
     }
+
     sql += ` ORDER BY f.form_id DESC`;
 
-    const [form] = await db.query(sql, params);
+    const [forms] = await db.query(sql, params);
 
-    if (form.length === 0) {
-      return res.status(200).json([]);
-    }
-    console.log("form", form);
+    return res.status(200).json(forms);
 
-    res.status(200).json(form);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error(error);
+    return res.status(500).json({ error: error.message });
   }
 });
+
 
 router.get("/formPageCharge/:id", async (req, res) => {
   console.log("get id pc in form");
@@ -372,7 +379,39 @@ router.put("/updatestatus_confer/:id", async (req, res) => {
     );
     console.log("updateStatus_result :", updateStatus);
 
-    const recipients = ["64070075@it.kmitl.ac.th"];
+    if (data.form_status != "return"){
+        const getEmail = await database.query(
+          `SELECT u.user_email 
+          FROM Form f
+          JOIN Users u ON f.form_status = u.user_role
+          WHERE form_id = ?`,
+          [data.form_id]
+        )
+        console.log("getEmail not return", getEmail)
+      } else if (data.form_status == "return") {
+        if (data.return_to == "professor"){
+          const getEmail = await database.query(
+            `SELECT u.user_email 
+            FROM Conference c 
+            JOIN Users u ON c.user_id = u.user_id
+            WHERE conf_id = ?`,
+            [id]
+          )
+          console.log("getEmail return_to == professor", getEmail)
+        } else {
+          const getEmail = await database.query(
+            `SELECT u.user_email 
+            FROM Form f
+            JOIN Users u ON f.return_to = u.user_role
+            WHERE form_id = ?`,
+            [data.form_id]
+          )
+          console.log("getEmail return not professor", getEmail)
+        }
+      }
+
+    //send email to user
+    const recipients = [getEmail[0][0].user_email];
     const subject =
       "แจ้งเตือนจากระบบสนับสนุนงานวิจัย มีการตีกลับแบบฟอร์มขอรับการสนับสนุนเข้าร่วมประชุม";
     const message = `
@@ -402,7 +441,39 @@ router.put("/updatestatus_pageC/:id", async (req, res) => {
     );
     console.log("updateStatus_result :", updateStatus);
 
-    const recipients = ["64070075@it.kmitl.ac.th"];
+    if (data.form_status != "return"){
+        const getEmail = await database.query(
+          `SELECT u.user_email 
+          FROM Form f
+          JOIN Users u ON f.form_status = u.user_role
+          WHERE form_id = ?`,
+          [data.form_id]
+        )
+        console.log("getEmail not return", getEmail)
+      } else if (data.form_status == "return") {
+        if (data.return_to == "professor"){
+          const getEmail = await database.query(
+            `SELECT u.user_email 
+            FROM Conference c 
+            JOIN Users u ON c.user_id = u.user_id
+            WHERE conf_id = ?`,
+            [data.id]
+          )
+          console.log("getEmail return_to == professor", getEmail)
+        } else {
+          const getEmail = await database.query(
+            `SELECT u.user_email 
+            FROM Form f
+            JOIN Users u ON f.return_to = u.user_role
+            WHERE form_id = ?`,
+            [data.form_id]
+          )
+          console.log("getEmail return not professor", getEmail)
+        }
+      }
+
+    //send email to user
+    const recipients = [getEmail[0][0].user_email];
     const subject =
       "แจ้งเตือนจากระบบสนับสนุนงานวิจัย มีการตีกลับแบบฟอร์มขอรับการสนับสนุนเข้าร่วมประชุม";
     const message = `

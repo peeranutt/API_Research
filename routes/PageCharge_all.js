@@ -328,6 +328,13 @@ router.post(
       );
       console.log("notification_result", notification_result);
 
+      const getOfficer = await database.query(
+        `SELECT user_email FROM Users WHERE user_role = "research"`
+      )
+
+      console.log("office for sent to email", getOfficer);
+      console.log("office for sent to email in email", getOfficer[0][0].user_email);
+
       const getuser = await database.query(
         `SELECT user_nameth FROM Users WHERE user_id = ?`,
         [pageChargeData.user_id]
@@ -337,7 +344,8 @@ router.post(
       await database.commit(); //commit transaction
 
       //send email to user
-      const recipients = ["64070075@kmitl.ac.th"]; //getuser[0].user_email
+      const recipients = [getOfficer[0][0].user_email];
+      console.log("recipients",recipients)
       const subject =
         "แจ้งเตือนจากระบบสนับสนุนงานวิจัย มีการส่งแบบฟอร์มขอรับการสนับสนุนการตีพิมพ์บทความวิจัย"
       const message = `
@@ -367,15 +375,6 @@ router.put("/upload/:id", uploadDocuments.fields([
 ]), async (req, res) => {
   console.log("in upload file pc", req.params);
   const { id } = req.params;
-  // const requiredFiles = ["pc_proof", "q_pc_proof", "copy_article", "invoice_public", "upload_article"];
-  //   const missingFiles = requiredFiles.filter((field) => !req.files[field]);
-  //   //เช็คไฟล์
-  //     if (missingFiles.length > 0) {
-  //       console.log(`กรุณาอัปโหลดไฟล์: ${missingFiles.join(", ")}`);
-  //       return res.status(400).json({
-  //         error: `กรุณาอัปโหลดไฟล์: ${missingFiles.join(", ")}`,
-  //       });
-  //     }
   try {
     console.log("fileData", req.files)
     const pageChargeFiles = req.files;
@@ -574,19 +573,6 @@ router.put("/editedFormPageChage/:id",
 
         await db.query(`UPDATE Page_Charge SET ${setClause} WHERE pageC_id = ?`, [id]);
       }
-
-      // const setClause = editDataJson.map(item => {
-      //   const value = Array.isArray(item.newValue)
-      //     ? JSON.stringify(item.newValue)
-      //     : item.newValue;
-      //   // escape single quotes เพื่อกัน syntax error ใน SQL
-      //   const safeValue = typeof value === 'string' ? value.replace(/'/g, "''") : value;
-
-      //   return `${item.field} = '${safeValue}'`;
-      // }).join(", ");
-
-      // const sql = await db.query(`UPDATE Page_Charge SET ${setClause} WHERE pageC_id = ${id};`)
-
       //เช็คว่ามีข้อมูลในส่วนของการกรอก file ไหม
     if (files && Object.keys(files).length > 0) {
       console.log("files", files)
@@ -622,6 +608,10 @@ router.put("/editedFormPageChage/:id",
         [getForm[0].past_return, allEditString, updates.editor, true, id]
       )
 
+      const getOfficer = await database.query(
+      `SELECT user_email FROM Users WHERE user_role = "research"`
+    )
+
       const [getData] = await db.query(
         `SELECT u.user_email, u.user_nameth, p.article_title 
       FROM Page_Charge p 
@@ -654,7 +644,7 @@ router.put("/editedFormPageChage/:id",
       } else if (updates.professor_reedit === true) {
 
         //send email to user research
-        const recipients = ["64070075@kmitl.ac.th"]; //getuser[0].user_email
+        const recipients = [getOfficer[0][0].user_email];
         const subject =
           "แจ้งเตือนจากระบบสนับสนุนงานวิจัย มีการแก้ไขแบบฟอร์มขอรับการสนับสนุนการตีพิมพ์ของคุณ"
         const message = `
