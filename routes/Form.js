@@ -97,23 +97,32 @@ router.get("/form/:user_id", async (req, res) => {
   const { user_id } = req.params;
   let { fiscalYear, type, typeStatus } = req.query;
 
-  console.log("user_id req.params", req.params);
-
   try {
-    // ปีงบประมาณปัจจุบัน (พ.ศ.)
     const currentYear = new Date().getFullYear() + 543;
-    if (!fiscalYear) {
-      fiscalYear = currentYear;
-    }
+    fiscalYear = fiscalYear || currentYear;
+
+    const STATUS_GROUPS = {
+      waitingApproval: [
+        "hr",
+        "research",
+        "finance",
+        "pending",
+        "associate",
+        "dean",
+        "attendMeeting",
+        "waitingApproval",
+      ],
+    };
 
     let sql = `
       SELECT f.form_id, f.form_type, f.conf_id, f.pageC_id, 
-        f.kris_id, f.form_status, f.edit_data, f.date_form_edit, f.return_note,
-        f.editor, f.professor_reedit, b.Research_kris_amount, b.amount_approval, f.return_to
-        ,COALESCE(k.user_id, c.user_id, p.user_id) AS user_id
-        ,COALESCE(k.name_research_th, c.conf_research, p.article_title) AS article_title
-        ,COALESCE(c.conf_name, p.journal_name) AS article_name
-        ,COALESCE(c.doc_submit_date, p.doc_submit_date, k.doc_submit_date) AS doc_submit_date
+        f.kris_id, f.form_status, f.edit_data, f.date_form_edit, 
+        f.return_note, f.editor, f.professor_reedit, 
+        b.Research_kris_amount, b.amount_approval, f.return_to,
+        COALESCE(k.user_id, c.user_id, p.user_id) AS user_id,
+        COALESCE(k.name_research_th, c.conf_research, p.article_title) AS article_title,
+        COALESCE(c.conf_name, p.journal_name) AS article_name,
+        COALESCE(c.doc_submit_date, p.doc_submit_date, k.doc_submit_date) AS doc_submit_date
       FROM Form f
         LEFT JOIN Research_KRIS k ON f.kris_id = k.kris_id
         LEFT JOIN Conference c ON f.conf_id = c.conf_id
@@ -125,31 +134,64 @@ router.get("/form/:user_id", async (req, res) => {
 
     const params = [user_id, fiscalYear];
 
-    // filter type
+    // FILTER TYPE
     if (type && type !== "all") {
       sql += ` AND f.form_type = ?`;
       params.push(type);
     }
 
-    // filter typeStatus (รองรับหลายค่า)
+    // FILTER STATUS
     if (typeStatus && typeStatus !== "all") {
-      const statuses = typeStatus.split(",").map(s => s.trim());
-      const placeholders = statuses.map(() => "?").join(",");
-      sql += ` AND f.form_status IN (${placeholders})`;
-      params.push(...statuses);
+      let statusConditions = [];
+
+      // 🔹 ถ้าเป็น GROUP
+      if (STATUS_GROUPS[typeStatus]) {
+        const groupStatuses = STATUS_GROUPS[typeStatus];
+        const placeholders = groupStatuses.map(() => "?").join(",");
+        statusConditions.push(`f.form_status IN (${placeholders})`);
+        params.push(...groupStatuses);
+      } 
+      else {
+        const statuses = typeStatus.split(",").map(s => s.trim());
+
+        const isReturning = statuses.includes("return");
+        const normalStatuses = statuses.filter(s => s !== "return");
+
+        // สถานะปกติ
+        if (normalStatuses.length > 0) {
+          const placeholders = normalStatuses.map(() => "?").join(",");
+          statusConditions.push(`f.form_status IN (${placeholders})`);
+          params.push(...normalStatuses);
+        }
+
+        // สถานะ return
+        if (isReturning) {
+          const roleToMatch =
+            normalStatuses[0] === "pending"
+              ? "finance"
+              : normalStatuses[0];
+
+          statusConditions.push(
+            `(f.form_status = 'return' AND f.return_to = ?)`
+          );
+          params.push(roleToMatch);
+        }
+      }
+
+      if (statusConditions.length > 0) {
+        sql += ` AND (${statusConditions.join(" OR ")})`;
+      }
     }
 
     sql += ` ORDER BY f.form_id DESC`;
 
-    const [form] = await db.query(sql, params);
+    const [forms] = await db.query(sql, params);
 
-    if (form.length === 0) {
-      return res.status(200).json([]);
-    }
+    return res.status(200).json(forms);
 
-    res.status(200).json(form);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error(error);
+    return res.status(500).json({ error: error.message });
   }
 });
 
