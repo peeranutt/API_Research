@@ -386,9 +386,12 @@ INSERT INTO Users (
 ('finance', 'พิจิตรา สุวรรณศรี', 'Pichitra Suwansri', 'pichitra@it.kmitl.ac.th', NULL, 0, 80000, '', '', '1996-08-13', TIMESTAMPDIFF(YEAR, '1996-08-13', CURRENT_DATE), false),
 ('admin', 'tanamat', 'tanamat', 'tanamat@it.kmitl.ac.th', NULL, 0, 80000, '', '', '1996-08-13', TIMESTAMPDIFF(YEAR, '1996-08-13', CURRENT_DATE), false),
 
-('associate', 'พีรณัฐ ทิพย์รักษ์', 'Peeranut Thiprak', '64070075@it.kmitl.ac.th', '1757151355818.png', 0, 80000, 'รศ.ดร.', 'Assoc. Prof. Dr.', '2024-10-13', TIMESTAMPDIFF(YEAR, '1996-08-13', CURRENT_DATE), true),
-('hr', 'ศศิกานต์ หลงกระจ่าง', 'Sasikan Longkachang', '64070105@it.kmitl.ac.th', NULL, 0, 80000, 'รศ.ดร.', 'Assoc. Prof. Dr.', '2000-09-13', TIMESTAMPDIFF(YEAR, '1996-08-13', CURRENT_DATE), true),
-('admin', 'admin', 'admin', '64070075@kmitl.ac.th', NULL, 0, 80000, 'รศ.ดร.', 'Assoc. Prof. Dr.', '2011-08-25', TIMESTAMPDIFF(YEAR, '1996-08-13', CURRENT_DATE), true);
+('hr', 'พีรณัฐ ทิพย์รักษ์', 'Peeranut Thiprak', '64070075@it.kmitl.ac.th', '1757151355818.png', 0, 80000, 'รศ.ดร.', 'Assoc. Prof. Dr.', '2024-10-13', TIMESTAMPDIFF(YEAR, '1996-08-13', CURRENT_DATE), true),
+('research', 'research', 'research', '64070075@kmitl.ac.th', NULL, 0, 80000, 'รศ.ดร.', 'Assoc. Prof. Dr.', '2011-08-25', TIMESTAMPDIFF(YEAR, '1996-08-13', CURRENT_DATE), true),
+('finance', 'finance', 'finance', '64070105@kmitl.ac.th', NULL, 0, 80000, 'รศ.ดร.', 'Assoc. Prof. Dr.', '2000-09-13', TIMESTAMPDIFF(YEAR, '1996-08-13', CURRENT_DATE), true),
+('associate', 'พี', 'Peeranut Thiprak', 'peeranut.wine@gmail.com', '1757151355818.png', 0, 80000, 'รศ.ดร.', 'Assoc. Prof. Dr.', '2024-10-13', TIMESTAMPDIFF(YEAR, '1996-08-13', CURRENT_DATE), true),
+('dean', 'ศศิ', 'Sasikan Longkachang', 'wine.peeranut@gmail.com', NULL, 0, 80000, 'รศ.ดร.', 'Assoc. Prof. Dr.', '2000-09-13', TIMESTAMPDIFF(YEAR, '1996-08-13', CURRENT_DATE), true),
+('admin', 'admin', 'admin', 'peeranut.thiprak@gmail.com', NULL, 0, 80000, 'รศ.ดร.', 'Assoc. Prof. Dr.', '2011-08-25', TIMESTAMPDIFF(YEAR, '1996-08-13', CURRENT_DATE), true);
 
 INSERT INTO ConditionPC (
     condition_id, natureAmount, mdpiQuartile1, mdpiQuartile2, otherQuartile1, otherQuartile2, otherQuartile3, otherQuartile4
@@ -478,3 +481,7 @@ UPDATE Users
 SET user_nameth = CONVERT(CAST(CONVERT(user_nameth USING latin1) AS BINARY) USING utf8mb4);
 UPDATE Users
 SET user_positionth = CONVERT(CAST(CONVERT(user_positionth USING latin1) AS BINARY) USING utf8mb4);
+
+ALTER DATABASE researchadministration
+CHARACTER SET utf8mb4
+COLLATE utf8mb4_unicode_ci;
