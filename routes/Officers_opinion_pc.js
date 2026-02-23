@@ -41,7 +41,7 @@ router.post("/opinionPC", async (req, res) => {
     //update status from
     const [updateForm_result] = await database.query(
       "UPDATE Form SET form_status = ?, return_note = ?, return_to = ?, past_return = ? WHERE pageC_id = ?",
-      [data.form_status, data.return_note, data.returnto, data.past_return, data.pageC_id]
+      [data.form_status, data.return_note, data.return_to, data.past_return, data.pageC_id]
     );
 
     //get pageC_id
@@ -54,10 +54,11 @@ router.post("/opinionPC", async (req, res) => {
     await database.commit(); //commit transaction
 
     const formId = getID[0].form_id;
-
+    console.log("formId : ", formId);
     let getEmail;
 
     if (data.form_status != "return") {
+      console.log("111 officer next step");
       [getEmail] = await database.query(
         `SELECT u.user_email 
         FROM Form f
@@ -66,6 +67,7 @@ router.post("/opinionPC", async (req, res) => {
         [formId]
       );
     } else if (data.return_to == "professor") {
+      console.log("222 return to professor");
       [getEmail] = await database.query(
         `SELECT u.user_email 
         FROM Page_Charge p 
@@ -74,6 +76,7 @@ router.post("/opinionPC", async (req, res) => {
         [data.pageC_id]
       );
     } else {
+      console.log("333 return to officer");
       [getEmail] = await database.query(
         `SELECT u.user_email 
         FROM Form f
@@ -82,6 +85,7 @@ router.post("/opinionPC", async (req, res) => {
         [formId]
       );
     }
+    console.log("getEmail : ", getEmail, getEmail[0].user_email);
 
     const recipients = [getEmail[0].user_email];
     const subject =
@@ -108,90 +112,137 @@ router.put("/opinionPC/:id", async (req, res) => {
   const { id } = req.params;
   const data = req.body;
 
-  const fields = [];
-  const values = [];
-  
-  data.updated_data.forEach((item) => {
-  fields.push(`${item.field} = ?`);
-  values.push(
-    Array.isArray(item.value) ? JSON.stringify(item.value) : item.value
-  );
-});
-
-  const database = await db.getConnection();
-  await database.beginTransaction(); //start transaction
+  const connection = await db.getConnection();
 
   try {
+    await connection.beginTransaction();
 
-    const sql = `UPDATE officers_opinion_pc SET ${fields.join(', ')} WHERE pageC_id = ?`;
-    values.push(id);
-    await database.query(sql, values);
+    console.log("data from frontend wine:", data);
 
-    //update status form
-    const [updateForm_result] = await database.query(
-      "UPDATE Form SET form_status = ?, return_to = ?, return_note = ?, past_return = ? WHERE pageC_id = ?",
-      [data.form_status, data.return_to, data.return_note, data.past_return, id]
+    //UPDATE officers_opinion_pc
+    const fields = [];
+    const values = [];
+
+    if (data.updated_data && data.updated_data.length > 0) {
+      data.updated_data.forEach((item) => {
+        fields.push(`${item.field} = ?`);
+        values.push(
+          Array.isArray(item.value)
+            ? JSON.stringify(item.value)
+            : item.value
+        );
+      });
+
+      const sql = `
+        UPDATE officers_opinion_pc 
+        SET ${fields.join(", ")} 
+        WHERE pageC_id = ?
+      `;
+
+      values.push(id);
+
+      await connection.query(sql, values);
+    }
+
+    // UPDATE FORM STATUS
+    await connection.query(
+      `UPDATE Form 
+       SET form_status = ?, 
+           return_to = ?, 
+           return_note = ?, 
+           past_return = ?
+       WHERE pageC_id = ?`,
+      [
+        data.form_status,// "research"
+        data.return_to,
+        data.return_note,
+        data.past_return,
+        id,
+      ]
     );
 
-    //get pageC_id
-    const [getID] = await database.query(
-      "SELECT form_id FROM Form WHERE pageC_id = ?",
+    //GET FORM ID
+    const [formRows] = await connection.query(
+      `SELECT form_id 
+       FROM Form 
+       WHERE pageC_id = ?`,
       [id]
     );
-    console.log("GetID : ", getID);
 
-    await database.commit(); //commit transaction
+    if (!formRows.length) {
+      throw new Error("Form not found");
+    }
+    const formId = formRows[0].form_id;
 
-    if (data.form_status != "return"){
-        const getEmail = await database.query(
-          `SELECT u.user_email 
-          FROM Form f
-          JOIN Users u ON f.form_status = u.user_role
-          WHERE form_id = ?`,
-          [data.form_id]
-        )
-        console.log("getEmail not return", getEmail)
-      } else if (data.form_status == "return") {
-        if (data.return_to == "professor"){
-          const getEmail = await database.query(
-            `SELECT u.user_email 
-            FROM Page_Charge p 
-            JOIN Users u ON p.user_id = u.user_id
-            WHERE pageC_id = ?`,
-            [data.pageC_id]
-          )
-          console.log("getEmail return_to == professor", getEmail)
-        } else {
-          const getEmail = await database.query(
-            `SELECT u.user_email 
-            FROM Form f
-            JOIN Users u ON f.return_to = u.user_role
-            WHERE form_id = ?`,
-            [data.form_id]
-          )
-          console.log("getEmail return not professor", getEmail)
-        }
-      }
+    // GET EMAIL
+    let emailRows = [];
+    if (data.form_status !== "return") {
+      const [rows] = await connection.query(
+        `SELECT u.user_email
+         FROM Form f
+         JOIN Users u ON f.form_status = u.user_role
+         WHERE f.form_id = ?`,
+        [formId]
+      );
+      emailRows = rows;
 
-    //send email to user
-    const recipients = [getEmail[0][0].user_email]; //getuser[0].user_email
+    } else if (data.return_to === "professor") {
+
+      const [rows] = await connection.query(
+        `SELECT u.user_email
+         FROM Page_Charge p
+         JOIN Users u ON p.user_id = u.user_id
+         WHERE p.pageC_id = ?`,
+        [id]
+      );
+      emailRows = rows;
+
+    } else {
+
+      const [rows] = await connection.query(
+        `SELECT u.user_email
+         FROM Form f
+         JOIN Users u ON f.return_to = u.user_role
+         WHERE f.form_id = ?`,
+        [formId]
+      );
+      emailRows = rows;
+    }
+
+    if (!emailRows.length) {
+      throw new Error("No recipient email found");
+    }
+
+    console.log("Email rows: ", emailRows);
+    const recipient = emailRows[0].user_email;
+
+    // COMMIT DB
+    await connection.commit();
+
+    // SEND EMAIL (หลัง commit)
     const subject =
-      "แจ้งเตือนจากระบบสนับสนุนงานวิจัย มีแบบฟอร์มขอรับการสนับสนุนการตีพิมพ์ในวารสารรอการอนุมัติและตรวจสอบ";
+      "แจ้งเตือนจากระบบสนับสนุนงานวิจัย มีแบบฟอร์มรอการตรวจสอบ";
+
     const message = `
-      มีแบบฟอร์มขอรับการสนับสนุนการตีพิมพ์ในวารสารรอการอนุมัติและตรวจสอบ โปรดเข้าสู่ระบบสนับสนุนงานบริหารงานวิจัยเพื่อทำการอนุมัติและตรวจสอบข้อมูล
-      กรุณาอย่าตอบกลับอีเมลนี้ เนื่องจากเป็นระบบอัตโนมัติที่ไม่สามารถตอบกลับได้`;
+      มีแบบฟอร์มรอการดำเนินการ
+      กรุณาเข้าสู่ระบบเพื่อดำเนินการต่อ
 
-    await sendEmail(recipients, subject, message);
+      กรุณาอย่าตอบกลับอีเมลนี้ เนื่องจากเป็นระบบอัตโนมัติ
+      `;
 
-    console.log("Email sent successfully");
+    await sendEmail([recipient], subject, message);
+    console.log("Email sent to:", recipient);
+    res.status(200).json({
+      success: true,
+      message: "Update completed",
+    });
 
-    res.status(200).json({ success: true, message: "Success" });
   } catch (error) {
-    database.rollback(); //rollback transaction
-    console.error("Error inserting into database:", error);
+    await connection.rollback();
+    console.error("Transaction rolled back:", error);
     res.status(500).json({ error: error.message });
   } finally {
-    database.release(); //release connection
+    connection.release();
   }
 });
 

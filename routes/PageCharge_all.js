@@ -542,7 +542,8 @@ router.put(
   }
 );
 
-router.put("/editedFormPageChage/:id",
+router.put(
+  "/editedFormPageChage/:id",
   uploadDocuments.fields([
     { name: "pc_proof" },
     { name: "q_pc_proof" },
@@ -555,110 +556,154 @@ router.put("/editedFormPageChage/:id",
     const { id } = req.params;
     const updates = req.body;
 
-    try {
-      const editDataJson = updates.edit_data ? JSON.parse(updates.edit_data) : [];
+    console.log("updates", updates);
 
-      const files = req.files;
+    const connection = await db.getConnection();
+
+    try {
+      await connection.beginTransaction();
+
+      // แปลง professor_reedit ให้เป็น boolean
+      const professorReedit = updates.professor_reedit === "true";
+
+      // UPDATE PAGE_CHARGE (edit_data)
+      const editDataJson = updates.edit_data
+        ? JSON.parse(updates.edit_data)
+        : [];
 
       if (editDataJson.length > 0) {
-        const setClause = editDataJson
-          .map((item) => {
-            const value = Array.isArray(item.newValue)
-              ? JSON.stringify(item.newValue)
-              : item.newValue;
-            const safeValue = typeof value === "string" ? value.replace(/'/g, "''") : value;
-            return `${item.field} = '${safeValue}'`;
-          })
-          .join(", ");
+        const fields = editDataJson.map((item) => item.field);
 
-        await db.query(`UPDATE Page_Charge SET ${setClause} WHERE pageC_id = ?`, [id]);
-      }
-      //เช็คว่ามีข้อมูลในส่วนของการกรอก file ไหม
-    if (files && Object.keys(files).length > 0) {
-      console.log("files", files)
-        const setClauseFile = Object.entries(files)
-          .map(([field, fileArr]) => {
-            const file = fileArr[0]; // multer เก็บเป็น array
-            return `${field} = '${file.filename}'`; // หรือ file.path
-          })
-          .join(", ");
+        const values = editDataJson.map((item) =>
+          Array.isArray(item.newValue)
+            ? JSON.stringify(item.newValue)
+            : item.newValue
+        );
 
-        await db.query(`UPDATE File_pdf SET ${setClauseFile} WHERE pageC_id = ?`, [id]);
+        const setClause = fields.map((f) => `${f} = ?`).join(", ");
+
+        await connection.query(
+          `UPDATE Page_Charge SET ${setClause} WHERE pageC_id = ?`,
+          [...values, id]
+        );
       }
 
+      // UPDATE FILE_PDF (ถ้ามีไฟล์)
+      const files = req.files;
+
+      if (files && Object.keys(files).length > 0) {
+        const fileFields = Object.keys(files);
+
+        const setClauseFile = fileFields
+          .map((field) => `${field} = ?`)
+          .join(", ");
+
+        const fileValues = fileFields.map(
+          (field) => files[field][0].filename
+        );
+
+        await connection.query(
+          `UPDATE File_pdf SET ${setClauseFile} WHERE pageC_id = ?`,
+          [...fileValues, id]
+        );
+      }
+
+      // เตรียมข้อมูล edit log
       const allEdit = {
-      edit_data: updates.edit_data,
-      file: updates.file,
-    };
+        edit_data: updates.edit_data,
+        file: files || null,
+      };
 
       const allEditString = JSON.stringify(allEdit);
 
-      const [getForm] = await db.query(
-        `SELECT form_id, past_return FROM Form  WHERE pageC_id = ?`,
+      // GET FORM
+      const [getForm] = await connection.query(
+        `SELECT form_id, past_return 
+         FROM Form 
+         WHERE pageC_id = ?`,
         [id]
-      )
+      );
 
-    console.log("getForm[0]", getForm[0].past_return);
-
-      const [updateOfficeEditetForm] = await db.query(
-        `UPDATE Form SET 
-        form_status = ?, edit_data = ?, editor = ?, professor_reedit = ?, 
-        return_to = null, return_note = null, past_return = null
-        WHERE pageC_id = ?`,
-        [getForm[0].past_return, allEditString, updates.editor, true, id]
-      )
-
-      const getOfficer = await database.query(
-      `SELECT user_email FROM Users WHERE user_role = "research"`
-    )
-
-      const [getData] = await db.query(
-        `SELECT u.user_email, u.user_nameth, p.article_title 
-      FROM Page_Charge p 
-      JOIN Users u ON p.user_id = u.user_id
-      WHERE pageC_id = ?`, [id]
-      )
-      console.log("article_title", getData[0].article_title)
-      const [updateNoti_result] = await db.query(
-        `UPDATE Notification SET date_update = CURRENT_DATE  WHERE form_id = ?`,
-        [getForm[0].form_id]
-      )
-      console.log("updates.professor_reedit", updates.professor_reedit)
-
-      if (
-        updates.professor_reedit === false ||
-        updates.professor_reedit === null ||
-        updates.professor_reedit === ""
-      ) {
-        //send email to professor
-        const recipients = [getData[0].user_email]; //getuser[0].user_email
-        const subject =
-          "แจ้งเตือนจากระบบสนับสนุนงานวิจัย มีการแก้ไขแบบฟอร์มขอรับการสนับสนุนการตีพิมพ์ของคุณ"
-        const message = `
-      แบบฟอร์มบทความ: ${getData[0].article_title} มีการแก้ไข กรุณาเข้าสู่ระบบเพื่อตรวจสอบข้อมูลและยืนยันเพื่อดำเนินการต่อไป
-      กรุณาอย่าตอบกลับอีเมลนี้ เนื่องจากเป็นระบบอัตโนมัติที่ไม่สามารถตอบกลับได้`;
-
-        await sendEmail(recipients, subject, message);
-
-        console.log("Email sent successfully");
-      } else if (updates.professor_reedit === true) {
-
-        //send email to user research
-        const recipients = [getOfficer[0][0].user_email];
-        const subject =
-          "แจ้งเตือนจากระบบสนับสนุนงานวิจัย มีการแก้ไขแบบฟอร์มขอรับการสนับสนุนการตีพิมพ์ของคุณ"
-        const message = `
-      แบบฟอร์มบทความ: ${getData[0].article_title} มีการแก้ไข กรุณาเข้าสู่ระบบเพื่อตรวจสอบข้อมูลและยืนยันเพื่อดำเนินการต่อไป
-      กรุณาอย่าตอบกลับอีเมลนี้ เนื่องจากเป็นระบบอัตโนมัติที่ไม่สามารถตอบกลับได้`;
-
-        await sendEmail(recipients, subject, message);
+      if (!getForm.length) {
+        throw new Error("Form not found");
       }
 
-      res.status(200).json({ success: true, message: "Success" });
+      const { form_id, past_return } = getForm[0];
+
+      // UPDATE FORM
+      await connection.query(
+        `UPDATE Form SET 
+          form_status = ?, 
+          edit_data = ?, 
+          editor = ?, 
+          professor_reedit = ?, 
+          return_to = NULL, 
+          return_note = NULL, 
+          past_return = NULL
+        WHERE pageC_id = ?`,
+        [past_return, allEditString, updates.editor, professorReedit, id]
+      );
+
+      // UPDATE NOTIFICATION
+      await connection.query(
+        `UPDATE Notification 
+         SET date_update = CURRENT_DATE
+         WHERE form_id = ?`,
+        [form_id]
+      );
+
+      // GET EMAIL DATA
+      const [[professorData]] = await connection.query(
+        `SELECT u.user_email, u.user_nameth, p.article_title
+         FROM Page_Charge p
+         JOIN Users u ON p.user_id = u.user_id
+         WHERE pageC_id = ?`,
+        [id]
+      );
+
+      const [[researchOfficer]] = await connection.query(
+        `SELECT user_email 
+         FROM Users 
+         WHERE user_role = ?`,
+        ["research"]
+      );
+
+      // SEND EMAIL
+      const subject =
+        "แจ้งเตือนจากระบบสนับสนุนงานวิจัย มีการแก้ไขแบบฟอร์มขอรับการสนับสนุนการตีพิมพ์ของคุณ";
+
+      const message = `
+        แบบฟอร์มบทความ: ${professorData.article_title} มีการแก้ไข 
+        กรุณาเข้าสู่ระบบเพื่อตรวจสอบข้อมูลและยืนยันเพื่อดำเนินการต่อไป
+
+        กรุณาอย่าตอบกลับอีเมลนี้ เนื่องจากเป็นระบบอัตโนมัติ
+      `;
+
+      let recipients;
+
+      if (!professorReedit) {
+        // ส่งให้ professor
+        recipients = [professorData.user_email];
+      } else {
+        // ส่งให้ research officer
+        recipients = [researchOfficer.user_email];
+      }
+      await sendEmail(recipients, subject, message);
+      await connection.commit();
+      console.log("Transaction committed");
+      res.status(200).json({
+        success: true,
+        message: "Form updated successfully",
+      });
     } catch (err) {
+      await connection.rollback();
+      console.error("Transaction rolled back:", err);
       res.status(500).json({ error: err.message });
+    } finally {
+      connection.release();
     }
-  })
+  }
+);
 
 router.get("/getFilepage_c", async (req, res) => {
   console.log("getFilepage_c")
