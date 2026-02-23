@@ -81,10 +81,11 @@ router.post("/opinionConf", async (req, res) => {
     await database.commit(); //commit transaction
 
     const formId = getID[0].form_id;
-
+console.log("formId : ", formId);
     let getEmail;
 
     if (data.form_status != "return") {
+      console.log("111 officer next step");
       [getEmail] = await database.query(
         `SELECT u.user_email 
         FROM Form f
@@ -93,14 +94,16 @@ router.post("/opinionConf", async (req, res) => {
         [formId]
       );
     } else if (data.return_to == "professor") {
+      console.log("222 return to professor");
       [getEmail] = await database.query(
         `SELECT u.user_email 
-        FROM Page_Charge p 
-        JOIN Users u ON p.user_id = u.user_id
-        WHERE pageC_id = ?`,
-        [data.pageC_id]
+        FROM Conference c 
+        JOIN Users u ON c.user_id = u.user_id
+        WHERE conf_id = ?`,
+        [data.conf_id]
       );
     } else {
+      console.log("333 return to officer");
       [getEmail] = await database.query(
         `SELECT u.user_email 
         FROM Form f
@@ -110,6 +113,7 @@ router.post("/opinionConf", async (req, res) => {
       );
     }
 
+    console.log("getEmail : ", getEmail, getEmail[0].user_email);
     const recipients = [getEmail[0].user_email]; //getuser[0].user_email
     const subject =
       "แจ้งเตือนจากระบบสนับสนุนงานวิจัย มีแบบฟอร์มขอรับการสนับสนุนเข้าร่วมประชุมรอการอนุมัติและตรวจสอบ";
@@ -135,108 +139,176 @@ router.put("/opinionConf/:id", async (req, res) => {
   const { id } = req.params;
   const data = req.body;
 
-  const fields = [];
-  const values = [];
-
-  data.updated_data.forEach((item) => {
-    fields.push(`${item.field} = ?`);
-    values.push(
-      Array.isArray(item.value) ? JSON.stringify(item.value) : item.value
-    );
-  });
-
-  const database = await db.getConnection();
-  await database.beginTransaction(); //start transaction
+  const connection = await db.getConnection();
 
   try {
-    const sql = `UPDATE officers_opinion_conf SET ${fields.join(", ")} WHERE conf_id = ?`;
-    values.push(id);
-    await database.query(sql, values);
+    await connection.beginTransaction();
 
-    //update status form
-    console.log("id", data.conf_id)
-    console.log("data.form_status", data.form_status)
-    const [updateForm_result] = await database.query(
-      "UPDATE Form SET form_status = ?, return_to = ?, return_note = ?, past_return = ? WHERE conf_id = ?",
-      [data.form_status, data.return_to, data.return_note, data.past_return, data.conf_id]
+    // =========================
+    // 1️⃣ UPDATE officers_opinion_conf
+    // =========================
+    if (data.updated_data && data.updated_data.length > 0) {
+      const fields = [];
+      const values = [];
+
+      data.updated_data.forEach((item) => {
+        fields.push(`${item.field} = ?`);
+        values.push(
+          Array.isArray(item.value)
+            ? JSON.stringify(item.value)
+            : item.value
+        );
+      });
+
+      const sql = `
+        UPDATE officers_opinion_conf 
+        SET ${fields.join(", ")} 
+        WHERE conf_id = ?
+      `;
+
+      values.push(id);
+
+      await connection.query(sql, values);
+    }
+
+    // =========================
+    // 2️⃣ UPDATE FORM
+    // =========================
+    await connection.query(
+      `UPDATE Form 
+       SET form_status = ?, 
+           return_to = ?, 
+           return_note = ?, 
+           past_return = ?
+       WHERE conf_id = ?`,
+      [
+        data.form_status,
+        data.return_to,
+        data.return_note,
+        data.past_return,
+        id,
+      ]
     );
-    //get form_id
-    const [getID] = await database.query(
-      "SELECT form_id FROM Form WHERE conf_id = ?",
+
+    // =========================
+    // 3️⃣ GET FORM ID
+    // =========================
+    const [formRows] = await connection.query(
+      `SELECT form_id 
+       FROM Form 
+       WHERE conf_id = ?`,
       [id]
     );
-    console.log("GetID : ", getID);
 
+    if (!formRows.length) {
+      throw new Error("Form not found");
+    }
+
+    const formId = formRows[0].form_id;
+
+    // =========================
+    // 4️⃣ UPDATE user_confer (ถ้ามี)
+    // =========================
     if (data.user_confer == 1) {
-      const [rows] = await database.query(
-        "SELECT user_id FROM Conference WHERE conf_id = ?",
-        [data.conf_id]
+      const [confRows] = await connection.query(
+        `SELECT user_id 
+         FROM Conference 
+         WHERE conf_id = ?`,
+        [id]
       );
 
-      if (rows.length > 0) {
-        const userId = rows[0].user_id;
-
-        await database.query(
-          "UPDATE Users SET user_confer = ? WHERE user_id = ?",
-          [data.user_confer, userId]
+      if (confRows.length) {
+        await connection.query(
+          `UPDATE Users 
+           SET user_confer = ? 
+           WHERE user_id = ?`,
+          [1, confRows[0].user_id]
         );
-
-        console.log("add user_confer succ");
-      } else {
-        console.log("No user_id found for conf_id:", data.conf_id);
       }
     }
 
-    await database.commit(); //commit transaction
+    // =========================
+    // 5️⃣ GET EMAIL (ก่อน commit)
+    // =========================
+    let emailRows = [];
 
-    const formId = getID[0].form_id;
+    if (data.form_status !== "return") {
 
-    let getEmail;
-
-    if (data.form_status != "return") {
-      [getEmail] = await database.query(
-        `SELECT u.user_email 
-        FROM Form f
-        JOIN Users u ON f.form_status = u.user_role
-        WHERE form_id = ?`,
+      const [rows] = await connection.query(
+        `SELECT u.user_email
+         FROM Form f
+         JOIN Users u ON f.form_status = u.user_role
+         WHERE f.form_id = ?`,
         [formId]
       );
-    } else if (data.return_to == "professor") {
-      [getEmail] = await database.query(
-        `SELECT u.user_email 
-        FROM Page_Charge p 
-        JOIN Users u ON p.user_id = u.user_id
-        WHERE pageC_id = ?`,
-        [data.pageC_id]
+
+      emailRows = rows;
+
+    } else if (data.return_to === "professor") {
+
+      const [rows] = await connection.query(
+        `SELECT u.user_email
+         FROM Conference c
+         JOIN Users u ON c.user_id = u.user_id
+         WHERE c.conf_id = ?`,
+        [id]
       );
+
+      emailRows = rows;
+
     } else {
-      [getEmail] = await database.query(
-        `SELECT u.user_email 
-        FROM Form f
-        JOIN Users u ON f.return_to = u.user_role
-        WHERE form_id = ?`,
+
+      const [rows] = await connection.query(
+        `SELECT u.user_email
+         FROM Form f
+         JOIN Users u ON f.return_to = u.user_role
+         WHERE f.form_id = ?`,
         [formId]
       );
+
+      emailRows = rows;
     }
-    //send email to user
-    const recipients = [getEmail[0].user_email]; //getuser[0].user_email
+
+    if (!emailRows.length) {
+      throw new Error("No email found");
+    }
+
+    const recipient = emailRows[0].user_email;
+
+    // =========================
+    // 6️⃣ COMMIT
+    // =========================
+    await connection.commit();
+
+    // =========================
+    // 7️⃣ SEND EMAIL
+    // =========================
     const subject =
-      "แจ้งเตือนจากระบบสนับสนุนงานวิจัย มีแบบฟอร์มขอรับการสนับสนุนเข้าร่วมประชุมรอการอนุมัติและตรวจสอบ";
+      "แจ้งเตือนจากระบบสนับสนุนงานวิจัย มีแบบฟอร์มขอรับการสนับสนุนเข้าร่วมประชุมรอการตรวจสอบ";
+
     const message = `
-      มีแบบฟอร์มขอรับการสนับสนุนเข้าร่วมประชุมรอการอนุมัติและตรวจสอบ โปรดเข้าสู่ระบบสนับสนุนงานบริหารงานวิจัยเพื่อทำการอนุมัติและตรวจสอบข้อมูล
-      กรุณาอย่าตอบกลับอีเมลนี้ เนื่องจากเป็นระบบอัตโนมัติที่ไม่สามารถตอบกลับได้`;
+มีแบบฟอร์มรอการดำเนินการ
+กรุณาเข้าสู่ระบบเพื่อดำเนินการต่อ
 
-    await sendEmail(recipients, subject, message);
+กรุณาอย่าตอบกลับอีเมลนี้ เนื่องจากเป็นระบบอัตโนมัติ
+`;
 
-    console.log("Email sent successfully");
+    await sendEmail([recipient], subject, message);
 
-    res.status(200).json({ success: true, message: "Success" });
+    console.log("Email sent to:", recipient);
+
+    res.status(200).json({
+      success: true,
+      message: "Update completed",
+    });
+
   } catch (error) {
-    database.rollback(); //rollback transaction
-    console.error("Error inserting into database:", error);
+    await connection.rollback();
+    console.error("Transaction rolled back:", error);
     res.status(500).json({ error: error.message });
+
   } finally {
-    database.release(); //release connection
+    connection.release();
   }
 });
 

@@ -36,7 +36,7 @@ router.post("/budget", async (req, res) => {
         `UPDATE Form SET form_status = ?, return_to = ?, return_note = ?, past_return = ? WHERE form_id = ?`,
         [
           data.form_status,
-          data.returnto,
+          data.return_to,
           data.return_note,
           data.past_return,
           data.form_id,
@@ -174,7 +174,7 @@ router.put("/updateBudget/:id", async (req, res) => {
         `UPDATE Form SET form_status = ?, return_to = ?, return_note = ?, past_return = ? WHERE form_id = ?`,
         [
           data.form_status,
-          data.returnto,
+          data.return_to,
           data.return_note,
           data.past_return,
           data.form_id,
