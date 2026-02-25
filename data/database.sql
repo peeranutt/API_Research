@@ -1,4 +1,6 @@
 USE ResearchAdministration;
+-- Set consistent collation for database
+ALTER DATABASE researchadministration CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 -- ปิดการตรวจสอบ Foreign Key ก่อน
 SET FOREIGN_KEY_CHECKS = 0;
 
@@ -36,7 +38,7 @@ CREATE TABLE Users (
     user_startwork DATE NOT NULL,
     user_year INT NOT NULL,
     user_confer boolean NOT NULL
-) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- ตารางเอกสารขออนุมัติค่าเดินทาง (Conference) CHECK
 CREATE TABLE Conference (
@@ -443,8 +445,27 @@ INSERT INTO `officers_opinion_kris` (`k_office_id`, `user_id`, `kris_id`, `resea
 (1, 40, 1, 'acknowledge', '2025-06-27');
 
 INSERT INTO `officers_opinion_pc` (`p_office_id`, `research_id`, `associate_id`, `dean_id`, `pageC_id`, `p_research_result`, `p_research_reason`, `p_associate_result`, `p_dean_acknowledge`, `p_dean_result`, `p_dean_reason`, `research_doc_submit_date`, `associate_doc_submit_date`, `dean_doc_submit_date`) VALUES
-(1, 40, 44, 4, 1, 'approve', NULL, 'approve', '2025-06-27', 'acknowledge', 'approve', NULL, '2025-06-27', '2025-06-27'),
-(2, 40, NULL, NULL, 2, 'approve', NULL, NULL, '2025-07-03', NULL, NULL, NULL, NULL, NULL);
+(1, 40, 44, 4, 1,
+ 'approve',
+ NULL,
+ 'approve',
+ 'acknowledge', 
+ 'approve',
+ NULL,
+ '2025-06-27',
+ '2025-06-27',
+ '2025-06-27'),
+
+ (2, 40, NULL, NULL, 2,
+ 'approve',
+ NULL,
+ NULL,
+ NULL,            -- p_dean_acknowledge
+ NULL,            -- p_dean_result
+ NULL,
+ '2025-07-03',
+ NULL,
+ NULL);
 
 INSERT INTO `Budget` (
     `budget_id`, `user_id`, `form_id`, `budget_year`,
@@ -481,7 +502,3 @@ UPDATE Users
 SET user_nameth = CONVERT(CAST(CONVERT(user_nameth USING latin1) AS BINARY) USING utf8mb4);
 UPDATE Users
 SET user_positionth = CONVERT(CAST(CONVERT(user_positionth USING latin1) AS BINARY) USING utf8mb4);
-
-ALTER DATABASE researchadministration
-CHARACTER SET utf8mb4
-COLLATE utf8mb4_unicode_ci;

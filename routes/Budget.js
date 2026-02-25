@@ -9,10 +9,10 @@ router.post("/budget", async (req, res) => {
   await database.beginTransaction(); //start transaction
 
   const data = req.body;
+  console.log("data budget from frontend: ", data);
 
   try {
     if (data.form_status != "pending") {
-      console.log("data in budget:", data);
       const [Budget_result] = await database.query(
         `INSERT INTO Budget ( user_id, form_id, budget_year, Page_Charge_amount, Conference_amount,
         num_expenses_approved, total_amount_approved, remaining_credit_limit, amount_approval, total_remaining_credit_limit, doc_submit_date
@@ -44,20 +44,41 @@ router.post("/budget", async (req, res) => {
       );
       console.log("updateForm_result : ", updateForm_result);
 
-      const [formType] = await database.query(
-        `SELECT conf_id, pageC_id FROM Form WHERE form_id = ?`,
+      let getEmail;
+
+    if (data.form_status != "return") {
+      console.log("111 officer next step");
+      [getEmail] = await database.query(
+        `SELECT u.user_email 
+        FROM Form f
+        JOIN Users u ON f.form_status = u.user_role
+        WHERE form_id = ?`,
         [data.form_id]
       );
-      console.log("formType : ", formType);
+    } else if (data.return_to == "professor") {
+      console.log("222 return to professor");
+      [getEmail] = await database.query(
+        `SELECT u.user_email 
+        FROM Page_Charge p 
+        JOIN Users u ON p.user_id = u.user_id
+        WHERE pageC_id = ?`,
+        [data.pageC_id]
+      );
+    } else {
+      console.log("333 return to officer");
+      [getEmail] = await database.query(
+        `SELECT u.user_email 
+        FROM Form f
+        JOIN Users u ON f.return_to = u.user_role
+        WHERE form_id = ?`,
+        [data.form_id]
+      );
+    }
+    console.log("getEmail : ", getEmail, getEmail[0].user_email);
 
-      await database.commit(); //commit transaction
-
-      const getOfficer = await database.query(
-        `SELECT user_email FROM Users WHERE user_role = "hr"`
-      )
+    const recipients = [getEmail[0].user_email];
 
       //send email to finance
-      const recipients = [getOfficer[0][0].user_email];;
       const subject =
         "แจ้งเตือนจากระบบสนับสนุนงานวิจัย มีแบบฟอร์มรอการอนุมัติและตรวจสอบ";
       const message = `
@@ -65,6 +86,7 @@ router.post("/budget", async (req, res) => {
       กรุณาอย่าตอบกลับอีเมลนี้ เนื่องจากเป็นระบบอัตโนมัติที่ไม่สามารถตอบกลับได้`;
 
       await sendEmail(recipients, subject, message);
+      await database.commit();
 
       console.log("Email sent successfully");
       res
@@ -74,10 +96,13 @@ router.post("/budget", async (req, res) => {
           id: Budget_result.insertId,
         });
     } else {
+      console.log("Budget pending");
       const [UpdateForm_result] = await database.query(
         `UPDATE Form SET form_status = ?, comment_pending = ? WHERE form_id = ?`,
         [data.form_status, data.comment_pending, data.form_id]
       );
+
+      console.log("UpdateForm_result pending : ", UpdateForm_result);
 
       await database.commit(); //commit transaction
 
@@ -144,6 +169,7 @@ router.put("/withdraw/conference/:id", async (req, res) => {
 router.put("/updateBudget/:id", async (req, res) => {
   const { id } = req.params;
   const data = req.body;
+  console.log("data update bg from frontend:", data);
 
   const database = await db.getConnection();
   await database.beginTransaction(); //start transaction
@@ -182,16 +208,9 @@ router.put("/updateBudget/:id", async (req, res) => {
       );
       console.log("updateForm_result : ", updateForm_result);
 
-      const [formType] = await database.query(
-        `SELECT conf_id, pageC_id FROM Form WHERE form_id = ?`,
-        [data.form_id]
-      );
-      console.log("formType : ", formType);
-
-      await database.commit(); //commit transaction
-
+      let getEmail;
       if (data.form_status != "return"){
-        const getEmail = await database.query(
+        [getEmail] = await database.query(
           `SELECT u.user_email 
           FROM Form f
           JOIN Users u ON f.form_status = u.user_role
@@ -201,13 +220,13 @@ router.put("/updateBudget/:id", async (req, res) => {
         console.log("getEmail not return", getEmail)
       } else if (data.form_status == "return") {
         if (data.return_to == "professor"){
-          const getEmail = await database.query(
-            `SELECT user_email FROM Users WHRER user_id = ?`,
+          [getEmail] = await database.query(
+            `SELECT user_email FROM Users WHERE user_id = ?`,
             [data.user_id]
           )
           console.log("getEmail return_to == professor", getEmail)
         } else {
-          const getEmail = await database.query(
+          [getEmail] = await database.query(
             `SELECT u.user_email 
             FROM Form f
             JOIN Users u ON f.return_to = u.user_role
@@ -219,7 +238,8 @@ router.put("/updateBudget/:id", async (req, res) => {
       }
 
       //send email to user
-      const recipients = [getEmail[0][0].user_email] //getuser[0].user_email
+      console.log("getEmail", getEmail);
+      const recipients = [getEmail[0].user_email] //getuser[0].user_email
       const subject =
         "แจ้งเตือนจากระบบสนับสนุนงานวิจัย มีแบบฟอร์มรอการอนุมัติและตรวจสอบ";
       const message = `
@@ -227,6 +247,8 @@ router.put("/updateBudget/:id", async (req, res) => {
       กรุณาอย่าตอบกลับอีเมลนี้ เนื่องจากเป็นระบบอัตโนมัติที่ไม่สามารถตอบกลับได้`;
 
       await sendEmail(recipients, subject, message);
+      
+      await database.commit();
 
       console.log("Email sent successfully");
       res
