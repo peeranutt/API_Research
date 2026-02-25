@@ -7,7 +7,7 @@ const baseURL = require("dotenv").config();
 
 const { DateTime } = require("luxon");
 
-const db = require("../config.js");
+const db = require("../config/db");
 
 const router = express.Router();
 

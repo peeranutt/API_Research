@@ -1,5 +1,5 @@
 const express = require("express");
-const db = require("../config.js");
+const db = require("../config/db");
 const country = require("./Country.json");
 
 router = express.Router();

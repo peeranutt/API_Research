@@ -1,5 +1,5 @@
 const express = require("express");
-const db = require("../config.js");
+const db = require("../config/db");
 const axios = require("axios");
 const jwt = require("jsonwebtoken");
 const authenticate = require("../middleware/authenticate.js");
