@@ -6,7 +6,7 @@ const Joi = require("joi");
 const { DateTime } = require("luxon");
 const baseURL = require("dotenv").config();
 
-const db = require("../config.js");
+const db = require("../config/db");
 const sendEmail = require("../middleware/mailer.js");
 
 const router = express.Router();

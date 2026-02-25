@@ -1,6 +1,6 @@
 const express = require("express");
 const multer = require('multer');
-const db = require("../config.js");
+const db = require("../config/db");
 const fs = require("fs");
 const path = require("path");
 
