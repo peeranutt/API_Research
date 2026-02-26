@@ -58,11 +58,14 @@ router.post("/budget", async (req, res) => {
     } else if (data.return_to == "professor") {
       console.log("222 return to professor");
       [getEmail] = await database.query(
-        `SELECT u.user_email 
-        FROM Page_Charge p 
-        JOIN Users u ON p.user_id = u.user_id
-        WHERE pageC_id = ?`,
-        [data.pageC_id]
+        `SELECT u.user_email
+        FROM Form f
+        LEFT JOIN Page_Charge pc ON f.pageC_id = pc.pageC_id
+        LEFT JOIN Conference c ON f.conf_id = c.conf_id
+        LEFT JOIN Research_KRIS rk ON f.kris_id = rk.kris_id
+        JOIN Users u ON u.user_id = COALESCE(pc.user_id, c.user_id, rk.user_id)
+        WHERE f.form_id = ?`,
+        [data.form_id]
       );
     } else {
       console.log("333 return to officer");
@@ -220,9 +223,16 @@ router.put("/updateBudget/:id", async (req, res) => {
         console.log("getEmail not return", getEmail)
       } else if (data.form_status == "return") {
         if (data.return_to == "professor"){
+          // หา professor จากตาราใดตารา: Page_Charge, Conference, หรือ Research_KRIS
           [getEmail] = await database.query(
-            `SELECT user_email FROM Users WHERE user_id = ?`,
-            [data.user_id]
+            `SELECT u.user_email
+            FROM Form f
+            LEFT JOIN Page_Charge pc ON f.pageC_id = pc.pageC_id
+            LEFT JOIN Conference c ON f.conf_id = c.conf_id
+            LEFT JOIN Research_KRIS rk ON f.kris_id = rk.kris_id
+            JOIN Users u ON u.user_id = COALESCE(pc.user_id, c.user_id, rk.user_id)
+            WHERE f.form_id = ?`,
+            [data.form_id]
           )
           console.log("getEmail return_to == professor", getEmail)
         } else {
