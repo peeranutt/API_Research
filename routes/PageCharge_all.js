@@ -341,8 +341,6 @@ router.post(
       );
       console.log("getuser", getuser[0][0]);
 
-      await database.commit(); //commit transaction
-
       //send email to user
       const recipients = [getOfficer[0][0].user_email];
       console.log("recipients",recipients)
@@ -353,7 +351,7 @@ router.post(
       กรุณาอย่าตอบกลับอีเมลนี้ เนื่องจากเป็นระบบอัตโนมัติที่ไม่สามารถตอบกลับได้`;
 
       // await sendEmail(recipients, subject, message);
-
+      await database.commit(); //commit transaction
       res.status(200).json({ success: true, message: "Success" });
     } catch (error) {
       database.rollback(); //rollback transaction

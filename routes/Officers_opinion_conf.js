@@ -78,8 +78,6 @@ router.post("/opinionConf", async (req, res) => {
       }
     }
 
-    await database.commit(); //commit transaction
-
     const formId = getID[0].form_id;
 console.log("formId : ", formId);
     let getEmail;
@@ -122,7 +120,7 @@ console.log("formId : ", formId);
       กรุณาอย่าตอบกลับอีเมลนี้ เนื่องจากเป็นระบบอัตโนมัติที่ไม่สามารถตอบกลับได้`;
 
     // await sendEmail(recipients, subject, message);
-
+    await database.commit(); //commit transaction
     console.log("Email sent successfully");
     res.status(200).json({ success: true, message: "Success" });
   } catch (error) {

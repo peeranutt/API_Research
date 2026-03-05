@@ -51,8 +51,6 @@ router.post("/opinionPC", async (req, res) => {
     );
     console.log("GetID : ", getID);
 
-    await database.commit(); //commit transaction
-
     const formId = getID[0].form_id;
     console.log("formId : ", formId);
     let getEmail;
@@ -95,6 +93,7 @@ router.post("/opinionPC", async (req, res) => {
       กรุณาอย่าตอบกลับอีเมลนี้ เนื่องจากเป็นระบบอัตโนมัติที่ไม่สามารถตอบกลับได้`;
 
     // await sendEmail(recipients, subject, message);
+    await database.commit(); //commit transaction
 
     console.log("Email sent successfully");
     res.status(200).json({ success: true, message: "Success" });
@@ -326,9 +325,6 @@ router.put("/opinionPC/:id", async (req, res) => {
     console.log("Email rows: ", emailRows);
     const recipient = emailRows[0].user_email;
 
-    // COMMIT DB
-    await connection.commit();
-
     // SEND EMAIL (หลัง commit)
     const subject =
       "แจ้งเตือนจากระบบสนับสนุนงานวิจัย มีแบบฟอร์มรอการตรวจสอบ";
@@ -341,7 +337,8 @@ router.put("/opinionPC/:id", async (req, res) => {
       `;
 
     // await sendEmail([recipient], subject, message);
-
+    await connection.commit();
+    
     console.log("Email sent to:", recipient);
     res.status(200).json({
       success: true,

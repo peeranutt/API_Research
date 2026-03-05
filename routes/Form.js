@@ -461,7 +461,7 @@ router.put("/updatestatus_confer/:id", async (req, res) => {
       กรุณาอย่าตอบกลับอีเมลนี้ เนื่องจากเป็นระบบอัตโนมัติที่ไม่สามารถตอบกลับได้`;
 
     // await sendEmail(recipients, subject, message);
-
+      await database.commit(); //commit transaction
     res.status(200).json({ success: true, message: "Status updated successfully" });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -523,7 +523,7 @@ router.put("/updatestatus_pageC/:id", async (req, res) => {
       กรุณาอย่าตอบกลับอีเมลนี้ เนื่องจากเป็นระบบอัตโนมัติที่ไม่สามารถตอบกลับได้`;
 
     // await sendEmail(recipients, subject, message);
-
+      await database.commit(); //commit transaction
     res.status(200).json({ success: true, message: "Status updated successfully" });
   } catch (err) {
     res.status(500).json({ error: err.message });

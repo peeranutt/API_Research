@@ -224,8 +224,6 @@ router.post("/kris", upload.single("kris_file"), async (req, res) => {
     );
     console.log("getuser", getuser[0][0]);
 
-    await database.commit(); //commit transaction
-
     //send email to user
     const recipients = [getOfficer[0][0].user_email];
     const subject = "แจ้งเตือนจากระบบสนับสนุนงานวิจัย มีการส่งแบบฟอร์มงานวิจัย";
@@ -234,6 +232,7 @@ router.post("/kris", upload.single("kris_file"), async (req, res) => {
       กรุณาอย่าตอบกลับอีเมลนี้ เนื่องจากเป็นระบบอัตโนมัติที่ไม่สามารถตอบกลับได้`;
 
     // await sendEmail(recipients, subject, message);
+    await database.commit(); //commit transaction
     
     res.status(200).json({ success: true, message: "Success" });
   } catch (error) {

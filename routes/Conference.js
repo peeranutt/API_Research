@@ -390,8 +390,6 @@ router.post("/conference",
       );
       console.log("getuser", getuser[0][0]);
 
-      await database.commit(); //commit transaction
-
       // const recipients = ["64070075@it.kmitl.ac.th"];
       const recipients = [getOfficer[0][0].user_email];;
       const subject =
@@ -402,6 +400,7 @@ router.post("/conference",
 
       // await sendEmail(recipients, subject, message);
 
+      await database.commit(); //commit transaction
       res.status(200).json({ success: true, message: "Success" });
     } catch (error) {
       database.rollback(); //rollback transaction
