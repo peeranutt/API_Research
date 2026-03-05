@@ -352,7 +352,7 @@ router.post(
       มีการส่งแบบฟอร์มขอรับการสนับสนุนจาก ${getuser[0][0].user_nameth} บทความ: ${pageChargeData.journal_name} กำลังรอการอนุมัติและตรวจสอบ โปรดเข้าสู่ระบบสนับสนุนงานบริหารงานวิจัยเพื่อทำการอนุมัติและตรวจสอบข้อมูล
       กรุณาอย่าตอบกลับอีเมลนี้ เนื่องจากเป็นระบบอัตโนมัติที่ไม่สามารถตอบกลับได้`;
 
-      await sendEmail(recipients, subject, message);
+      // await sendEmail(recipients, subject, message);
 
       res.status(200).json({ success: true, message: "Success" });
     } catch (error) {
@@ -688,7 +688,8 @@ router.put(
         // ส่งให้ research officer
         recipients = [researchOfficer.user_email];
       }
-      await sendEmail(recipients, subject, message);
+      // await sendEmail(recipients, subject, message);
+
       await connection.commit();
       console.log("Transaction committed");
       res.status(200).json({

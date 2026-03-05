@@ -88,7 +88,7 @@ router.post("/budget", async (req, res) => {
       โปรดเข้าสู่ระบบสนับสนุนงานบริหารงานวิจัยเพื่อทำการอนุมัติและตรวจสอบข้อมูล
       กรุณาอย่าตอบกลับอีเมลนี้ เนื่องจากเป็นระบบอัตโนมัติที่ไม่สามารถตอบกลับได้`;
 
-      await sendEmail(recipients, subject, message);
+      // await sendEmail(recipients, subject, message);
       await database.commit();
 
       console.log("Email sent successfully");
@@ -159,7 +159,7 @@ router.put("/withdraw/conference/:id", async (req, res) => {
        โปรดเข้าสู่ระบบสนับสนุนงานบริหารงานวิจัยเพื่อทำการอนุมัติและตรวจสอบข้อมูล
       กรุณาอย่าตอบกลับอีเมลนี้ เนื่องจากเป็นระบบอัตโนมัติที่ไม่สามารถตอบกลับได้`;
 
-    await sendEmail(recipients, subject, message);
+    // await sendEmail(recipients, subject, message);
     res
       .status(200)
       .json({ success: true, message: "Success", data: updateWithdrawMoney });
@@ -256,7 +256,7 @@ router.put("/updateBudget/:id", async (req, res) => {
       โปรดเข้าสู่ระบบสนับสนุนงานบริหารงานวิจัยเพื่อทำการอนุมัติและตรวจสอบข้อมูล
       กรุณาอย่าตอบกลับอีเมลนี้ เนื่องจากเป็นระบบอัตโนมัติที่ไม่สามารถตอบกลับได้`;
 
-      await sendEmail(recipients, subject, message);
+      // await sendEmail(recipients, subject, message);
       
       await database.commit();
 
@@ -320,7 +320,7 @@ router.put("/withdraw/pageCharge/:id", async (req, res) => {
        โปรดเข้าสู่ระบบสนับสนุนงานบริหารงานวิจัยเพื่อทำการอนุมัติและตรวจสอบข้อมูล
       กรุณาอย่าตอบกลับอีเมลนี้ เนื่องจากเป็นระบบอัตโนมัติที่ไม่สามารถตอบกลับได้`;
 
-    await sendEmail(recipients, subject, message);
+    // await sendEmail(recipients, subject, message);
     res
       .status(200)
       .json({ success: true, message: "Success", data: updateWithdrawMoney });

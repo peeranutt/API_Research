@@ -121,7 +121,7 @@ console.log("formId : ", formId);
       มีแบบฟอร์มขอรับการสนับสนุนเข้าร่วมประชุมรอการอนุมัติและตรวจสอบ โปรดเข้าสู่ระบบสนับสนุนงานบริหารงานวิจัยเพื่อทำการอนุมัติและตรวจสอบข้อมูล
       กรุณาอย่าตอบกลับอีเมลนี้ เนื่องจากเป็นระบบอัตโนมัติที่ไม่สามารถตอบกลับได้`;
 
-    await sendEmail(recipients, subject, message);
+    // await sendEmail(recipients, subject, message);
 
     console.log("Email sent successfully");
     res.status(200).json({ success: true, message: "Success" });
@@ -293,7 +293,7 @@ router.put("/opinionConf/:id", async (req, res) => {
 กรุณาอย่าตอบกลับอีเมลนี้ เนื่องจากเป็นระบบอัตโนมัติ
 `;
 
-    await sendEmail([recipient], subject, message);
+    // await sendEmail([recipient], subject, message);
 
     console.log("Email sent to:", recipient);
 
