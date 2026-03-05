@@ -107,6 +107,84 @@ router.post("/opinionPC", async (req, res) => {
   }
 });
 
+async function getRecipientEmail(connection, data, pageC_id, formId) {
+
+  console.log("form_status:", data.form_status);
+
+  switch (data.form_status) {
+
+    case "waitingApproval":
+
+      console.log("Send to research officer");
+
+      const [researchRows] = await connection.query(
+        `SELECT user_email
+         FROM Users
+         WHERE user_role = 'research'`
+      );
+
+      return researchRows;
+
+    case "approve":
+    case "notApproved":
+
+      console.log("Send result to professor");
+
+      const [profRows] = await connection.query(
+        `SELECT u.user_email
+         FROM Page_Charge p
+         JOIN Users u ON p.user_id = u.user_id
+         WHERE p.pageC_id = ?`,
+        [pageC_id]
+      );
+
+      return profRows;
+
+    case "return":
+
+      if (data.return_to === "professor") {
+
+        console.log("Return to professor");
+
+        const [rows] = await connection.query(
+          `SELECT u.user_email
+           FROM Page_Charge p
+           JOIN Users u ON p.user_id = u.user_id
+           WHERE p.pageC_id = ?`,
+          [pageC_id]
+        );
+
+        return rows;
+      }
+
+      console.log("Return to officer");
+
+      const [officerRows] = await connection.query(
+        `SELECT u.user_email
+         FROM Form f
+         JOIN Users u ON f.return_to = u.user_role
+         WHERE f.form_id = ?`,
+        [formId]
+      );
+
+      return officerRows;
+
+    default:
+
+      console.log("Send to next officer");
+
+      const [nextRows] = await connection.query(
+        `SELECT u.user_email
+         FROM Form f
+         JOIN Users u ON f.form_status = u.user_role
+         WHERE f.form_id = ?`,
+        [formId]
+      );
+
+      return nextRows;
+  }
+}
+
 //update: add opinion of other role
 router.put("/opinionPC/:id", async (req, res) => {
   const { id } = req.params;
@@ -176,36 +254,68 @@ router.put("/opinionPC/:id", async (req, res) => {
 
     // GET EMAIL
     let emailRows = [];
-    if (data.form_status !== "return") {
+
+    console.log("form_status:", data.form_status);
+
+    if (data.form_status === "waitingApproval") {
+
+      console.log("Send to research officer");
+
       const [rows] = await connection.query(
-        `SELECT u.user_email
-         FROM Form f
-         JOIN Users u ON f.form_status = u.user_role
-         WHERE f.form_id = ?`,
-        [formId]
+        `SELECT user_email
+        FROM Users
+        WHERE user_role = ?`,
+        ["research"]
       );
+
       emailRows = rows;
 
-    } else if (data.return_to === "professor") {
-
+    } else if (data.form_status === "approve" || data.form_status === "notApproved") {
+      console.log("Send result to professor");
       const [rows] = await connection.query(
         `SELECT u.user_email
-         FROM Page_Charge p
-         JOIN Users u ON p.user_id = u.user_id
-         WHERE p.pageC_id = ?`,
+        FROM Page_Charge p
+        JOIN Users u ON p.user_id = u.user_id
+        WHERE p.pageC_id = ?`,
         [id]
       );
+
+      emailRows = rows;
+
+    } else if (data.form_status === "return" && data.return_to === "professor") {
+      console.log("Return to professor");
+      const [rows] = await connection.query(
+        `SELECT u.user_email
+        FROM Page_Charge p
+        JOIN Users u ON p.user_id = u.user_id
+        WHERE p.pageC_id = ?`,
+        [id]
+      );
+
+      emailRows = rows;
+
+    } else if (data.form_status === "return") {
+      console.log("Return to officer");
+      const [rows] = await connection.query(
+        `SELECT u.user_email
+        FROM Form f
+        JOIN Users u ON f.return_to = u.user_role
+        WHERE f.form_id = ?`,
+        [formId]
+      );
+
       emailRows = rows;
 
     } else {
-
+      console.log("Send to next officer");
       const [rows] = await connection.query(
         `SELECT u.user_email
-         FROM Form f
-         JOIN Users u ON f.return_to = u.user_role
-         WHERE f.form_id = ?`,
+        FROM Form f
+        JOIN Users u ON f.form_status = u.user_role
+        WHERE f.form_id = ?`,
         [formId]
       );
+
       emailRows = rows;
     }
 
