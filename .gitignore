@@ -7,6 +7,7 @@ config.js
 
 ### floder ###
 uploads/
+config/
 
 ### Node ###
 # Logs
