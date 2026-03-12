@@ -11,8 +11,6 @@ router.post("/auth", async (req, res) => {
     // get the code from fronted
     const code = req.headers.authorization;
 
-    console.log("Auth", code);
-
     if (!code)
       return res.status(400).json({ message: "Missing authorization code" });
 
@@ -73,7 +71,6 @@ router.post("/auth", async (req, res) => {
     //Process user details and perform necessary actions
     res.status(200).json({ message: "เข้าสู่ระบบสำเร็จ", userDetails });
   } catch (error) {
-    console.log("Error saving code:", error);
     res.status(500).json({ message: "เกิดข้อผิดพลาด กรุณาติดต่อเจ้าหน้าที่ หรือลองอีกครั้งในภายหลัง" });
   }
 });
@@ -103,7 +100,6 @@ router.get("/me", authenticate, async (req, res) => {
 router.post("/logout", (req, res) => {
   res.clearCookie("token");
   res.status(200).json({ message: "ออกจากระบบเรียบร้อย" });
-  console.log("Logout success");
 });
 
 exports.router = router;

@@ -53,7 +53,6 @@ router.put(
       [user_id]
     );
 
-    console.log("check,", check[0]);
 
     if (check[0].user_signature == "" || check[0].user_signature == null) {
       try {
@@ -75,16 +74,11 @@ router.put(
 router.get("/mySignature", async (req, res) => {
   const { user_id } = req.query;
 
-  console.log(user_id);
 
   const signature = await db.query(
     "SELECT user_signature FROM Users WHERE user_id = ?",
     [user_id]
   );
-
-  console.log(signature);
-
-  console.log("i", signature[0]?.[0]?.user_signature);
 
   const url = baseURL.parsed.VITE_API_BASE_URL;
   const fileUrl = signature[0][0].user_signature;
@@ -93,9 +87,7 @@ router.get("/mySignature", async (req, res) => {
 });
 
 router.post("/user", async (req, res) => {
-  console.log("in post user");
   const data = req.body;
-  console.log("data", data);
   try {
     const [result] = await db.query(
       `INSERT INTO Users (
@@ -116,13 +108,11 @@ router.post("/user", async (req, res) => {
         0,
       ]
     );
-    console.log(result);
     res
       .status(201)
       .json({ message: "user created successfully!", id: result.insertId });
   } catch (err) {
     res.status(500).json({ error: err.message });
-    console.log(err.message);
   }
 });
 
@@ -144,7 +134,6 @@ router.get("/user/:id", async (req, res) => {
     if (user.length === 0) {
       return res.status(404).json({ message: "userID not found" });
     }
-    console.log("Get UserId: ", user[0]);
     res.status(200).json(user[0]);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -155,7 +144,6 @@ router.get("/user/:id", async (req, res) => {
 router.put("/updateRoles", async (req, res) => {
   const { userUpdates } = req.body;
 
-  console.log("Received userUpdates:", userUpdates);
 
   if (!Array.isArray(userUpdates) || userUpdates.length === 0) {
     return res.status(400).json({ error: "Invalid request data" });
@@ -165,10 +153,6 @@ router.put("/updateRoles", async (req, res) => {
     const queries = userUpdates.map(({ id, value }) => {
       const isMoney = !isNaN(value) && String(value).trim() !== "";
       const field = isMoney ? "user_moneyCF" : "user_role";
-
-      console.log(
-        `📝 Processing update for user_id: ${id} -> ${field}: ${value}`
-      );
 
       return new Promise((resolve, reject) => {
         db.query(
@@ -182,28 +166,15 @@ router.put("/updateRoles", async (req, res) => {
               console.warn(`⚠️ No rows updated for user_id ${id}`);
               resolve(result); // หรือ reject ขึ้นอยู่กับความต้องการ
             } else {
-              console.log(`✅ Updated ${field} for user_id ${id}`);
               resolve(result);
             }
           }
         );
       });
     });
-
-    console.log("addtodatabsela:");
-    console.log("✅ All updates successful, sending response...");
     res
       .status(200)
       .json({ success: true, message: "User data updated successfully" });
-    // const results = await Promise.allSettled(queries);
-    // console.log("results:", results); // ตรวจสอบว่าสามารถแสดงผลได้
-
-    // const errors = results.filter(result => result.status === 'rejected');
-
-    // if (errors.length > 0) {
-    //   console.error("❌ Some updates failed:", errors);
-    //   return res.status(500).json({ error: "Some updates failed", details: errors });
-    // }
   } catch (err) {
     console.error("❌ Error updating roles:", err);
     res.status(500).json({ error: err.message });
@@ -211,7 +182,6 @@ router.put("/updateRoles", async (req, res) => {
 });
 
 router.put("/userSignat/:id", (req, res) => {
-  console.log("delete userSignat");
   const id = req.params.id;
   db.query(
     "UPDATE Users SET user_signature = null WHERE user_id = ?",
@@ -227,7 +197,6 @@ router.put("/userSignat/:id", (req, res) => {
 });
 
 router.delete("/user/:id", (req, res) => {
-  console.log("delete");
   const id = req.params.id;
   db.query("DELETE FROM Users WHERE user_id = ?", [id], (err, result) => {
     if (err) return res.status(500).json(err);
@@ -240,14 +209,9 @@ router.delete("/user/:id", (req, res) => {
 
 router.post("/testlogin", async (req, res) => {
   const { email } = req.body;
-
-  console.log("testlogin", email);
-
   const [result] = await db.query("SELECT * FROM Users WHERE user_email = ?", [
     email,
   ]);
-
-  console.log("result", result);
 
   if (result.length > 0) {
     const user = result[0];

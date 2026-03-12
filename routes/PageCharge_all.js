@@ -212,12 +212,10 @@ router.post(
   async (req, res) => {
     const requiredFiles = ["pc_proof", "q_pc_proof", "copy_article", "invoice_public", "upload_article"];
     const missingFiles = requiredFiles.filter((field) => !req.files[field]);
-    console.log("all data", req.body)
     //check dataError and missingFiles
 
     //เช็คไฟล์ก่อนเริ่ม transaction
     if (missingFiles.length > 0) {
-      console.log(`กรุณาอัปโหลดไฟล์: ${missingFiles.join(", ")}`);
       return res.status(400).json({
         error: `กรุณาอัปโหลดไฟล์: ${missingFiles.join(", ")}`,
       });
@@ -225,7 +223,6 @@ router.post(
     try {
       await pageChargeSchema.validate(req.body, { abortEarly: false });
     } catch (error) {
-      console.log("error", error);
       return res
         .status(400)
         .json({ error: error.details.map((err) => err.message) });
@@ -233,8 +230,6 @@ router.post(
 
     const pageChargeData = req.body;
     const pageChargeFiles = req.files;
-    console.log("pageChargeData", pageChargeData)
-
     const database = await db.getConnection();
 
     try {
@@ -313,7 +308,6 @@ router.post(
           form_status: "research",
         }),
       ]);
-      console.log("form_result", form_result);
 
       //insert data to Notification
       const [notification_result] = await database.query(
@@ -326,24 +320,19 @@ router.post(
           pageChargeData.article_title
         ]
       );
-      console.log("notification_result", notification_result);
 
       const getOfficer = await database.query(
         `SELECT user_email FROM Users WHERE user_role = "research"`
       )
 
-      console.log("office for sent to email", getOfficer);
-      console.log("office for sent to email in email", getOfficer[0][0].user_email);
 
       const getuser = await database.query(
         `SELECT user_nameth FROM Users WHERE user_id = ?`,
         [pageChargeData.user_id]
       );
-      console.log("getuser", getuser[0][0]);
 
       //send email to user
       const recipients = [getOfficer[0][0].user_email];
-      console.log("recipients",recipients)
       const subject =
         "แจ้งเตือนจากระบบสนับสนุนงานวิจัย มีการส่งแบบฟอร์มขอรับการสนับสนุนการตีพิมพ์บทความวิจัย"
       const message = `
@@ -371,10 +360,8 @@ router.put("/upload/:id", uploadDocuments.fields([
   { name: "copy_article" },
   { name: "upload_article" }
 ]), async (req, res) => {
-  console.log("in upload file pc", req.params);
   const { id } = req.params;
   try {
-    console.log("fileData", req.files)
     const pageChargeFiles = req.files;
 
     // รับไฟล์ใหม่ที่ upload เข้ามา
@@ -386,7 +373,6 @@ router.put("/upload/:id", uploadDocuments.fields([
       copy_article: pageChargeFiles.copy_article?.[0]?.filename,
       upload_article: pageChargeFiles.upload_article?.[0]?.filename
     };
-    console.log(fileData)
     // กรองออกเฉพาะ field ที่ไม่เป็น undefined (คือมีการเปลี่ยนไฟล์ใหม่จริง ๆ)
     const updates = {};
     for (const key in fileData) {
@@ -401,7 +387,6 @@ router.put("/upload/:id", uploadDocuments.fields([
     const [file_result] = await database.query("UPDATE File_pdf SET ? WHERE pageC_id = ?", [
       fileData, id
     ]);
-    console.log("file_result", file_result);
     res.status(200).json(Page_Charge);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -409,7 +394,6 @@ router.put("/upload/:id", uploadDocuments.fields([
 });
 
 router.get("/page_charges", async (req, res) => {
-  console.log("in get pc");
   try {
     const [Page_Charge] = await db.query("SELECT * FROM Page_Charge");
     res.status(200).json(Page_Charge);
@@ -428,7 +412,6 @@ router.get("/page_charge/:id", async (req, res) => {
     if (page_charge.length === 0) {
       return res.status(404).json({ message: "page_charge not found" });
     }
-    console.log("Get page_charge: ", page_charge[0]);
     res.status(200).json(page_charge[0]);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -484,8 +467,6 @@ router.put(
     }
 
     const data = req.body;
-    console.log("ddddddd", data);
-    console.log("ddddddd", data.q_pc_proof);
 
     try {
       const files = req.files;
@@ -502,8 +483,6 @@ router.put(
         copy_article: files.copy_article?.[0]?.filename || data.copy_article,
         upload_article: files.upload_article?.[0]?.filename || data.upload_article,
       };
-
-      console.log("ddd", fileData);
 
       const update = await db.query(
         `UPDATE File_pdf SET q_pc_proof = ?, invoice_public = ?, accepted = ?, copy_article = ?, upload_article = ? WHERE pageC_id = ?`,
@@ -522,16 +501,13 @@ router.put(
         ["research", data.pageC_id]
       );
 
-      console.log("updateForm_result :", updateForm_result);
 
       //get pageC_id
       const [getID] = await db.query(
         "SELECT form_id FROM Form WHERE pageC_id = ?",
         [data.pageC_id]
       );
-      console.log("GetID : ", getID);
 
-      console.log("✅ Update successful:", update);
       res.json({ success: true, message: "อัปเดตข้อมูลสำเร็จ" });
     } catch (error) {
       console.error("❌ Error updating database:", error.message);
@@ -553,9 +529,6 @@ router.put(
   async (req, res) => {
     const { id } = req.params;
     const updates = req.body;
-
-    console.log("updates", updates);
-
     const connection = await db.getConnection();
 
     try {
@@ -689,7 +662,6 @@ router.put(
       // await sendEmail(recipients, subject, message);
 
       await connection.commit();
-      console.log("Transaction committed");
       res.status(200).json({
         success: true,
         message: "Form updated successfully",
@@ -705,7 +677,6 @@ router.put(
 );
 
 router.get("/getFilepage_c", async (req, res) => {
-  console.log("getFilepage_c")
   const { pageC_id } = req.query;
 
   const file = await db.query(
@@ -714,7 +685,6 @@ router.get("/getFilepage_c", async (req, res) => {
   );
 
   const url = baseURL.parsed.VITE_API_BASE_URL;
-  console.log("url", url)
 
   const file_pc_proof = `${url}uploads/${file[0]?.[0]?.pc_proof}`;
   const file_q_pc_proof = `${url}uploads/${file[0]?.[0]?.q_pc_proof}`;

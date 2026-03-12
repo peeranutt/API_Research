@@ -9,7 +9,6 @@ router.post("/budget", async (req, res) => {
   await database.beginTransaction(); //start transaction
 
   const data = req.body;
-  console.log("data budget from frontend: ", data);
 
   try {
     if (data.form_status != "pending") {
@@ -30,7 +29,6 @@ router.post("/budget", async (req, res) => {
           data.total_remaining_credit_limit,
         ]
       );
-      console.log("Budget_result : ", Budget_result);
 
       const [updateForm_result] = await database.query(
         `UPDATE Form SET form_status = ?, return_to = ?, return_note = ?, past_return = ? WHERE form_id = ?`,
@@ -42,12 +40,10 @@ router.post("/budget", async (req, res) => {
           data.form_id,
         ]
       );
-      console.log("updateForm_result : ", updateForm_result);
 
       let getEmail;
 
     if (data.form_status != "return") {
-      console.log("111 officer next step");
       [getEmail] = await database.query(
         `SELECT u.user_email 
         FROM Form f
@@ -56,7 +52,6 @@ router.post("/budget", async (req, res) => {
         [data.form_id]
       );
     } else if (data.return_to == "professor") {
-      console.log("222 return to professor");
       [getEmail] = await database.query(
         `SELECT u.user_email
         FROM Form f
@@ -68,7 +63,6 @@ router.post("/budget", async (req, res) => {
         [data.form_id]
       );
     } else {
-      console.log("333 return to officer");
       [getEmail] = await database.query(
         `SELECT u.user_email 
         FROM Form f
@@ -77,7 +71,6 @@ router.post("/budget", async (req, res) => {
         [data.form_id]
       );
     }
-    console.log("getEmail : ", getEmail, getEmail[0].user_email);
 
     const recipients = [getEmail[0].user_email];
 
@@ -91,7 +84,6 @@ router.post("/budget", async (req, res) => {
       // await sendEmail(recipients, subject, message);
       await database.commit();
 
-      console.log("Email sent successfully");
       res
         .status(201)
         .json({
@@ -99,13 +91,10 @@ router.post("/budget", async (req, res) => {
           id: Budget_result.insertId,
         });
     } else {
-      console.log("Budget pending");
       const [UpdateForm_result] = await database.query(
         `UPDATE Form SET form_status = ?, comment_pending = ? WHERE form_id = ?`,
         [data.form_status, data.comment_pending, data.form_id]
       );
-
-      console.log("UpdateForm_result pending : ", UpdateForm_result);
 
       await database.commit(); //commit transaction
 
@@ -113,7 +102,6 @@ router.post("/budget", async (req, res) => {
     }
   } catch (error) {
     database.rollback(); //rollback transaction
-    console.error("Error inserting into database:", error);
     res.status(500).json({ error: error.message });
   } finally {
     database.release(); //release connection
@@ -121,16 +109,13 @@ router.post("/budget", async (req, res) => {
 });
 
 router.put("/withdraw/conference/:id", async (req, res) => {
-  console.log("withdraw in conference id:", req.params);
   const { id } = req.params;
   const updates = req.body;
   try {
-    console.log("in conf_id");
     const [findID] = await db.query(
       `SELECT form_id FROM Form  WHERE conf_id = ?`,
       [id]
     );
-    console.log("findID", findID[0].form_id);
     const [updateWithdrawMoney] = await db.query(
       `UPDATE Budget SET travelExpenses = ?, allowance = ?, withdraw = ? WHERE form_id = ?`,
       [
@@ -140,7 +125,6 @@ router.put("/withdraw/conference/:id", async (req, res) => {
         findID[0].form_id,
       ]
     );
-    console.log("updateresult :", updateWithdrawMoney);
 
     const [getUser] = await db.query(
       `SELECT u.user_email 
@@ -149,7 +133,6 @@ router.put("/withdraw/conference/:id", async (req, res) => {
       WHERE c.conf_id = ?`,
       [id]
     )
-    console.log("getuser", getUser);
 
     //send email to user
     const recipients = [getUser[0].user_email]; //getuser[0].user_email
@@ -164,7 +147,6 @@ router.put("/withdraw/conference/:id", async (req, res) => {
       .status(200)
       .json({ success: true, message: "Success", data: updateWithdrawMoney });
   } catch (err) {
-    console.error("SQL error →", err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -172,7 +154,6 @@ router.put("/withdraw/conference/:id", async (req, res) => {
 router.put("/updateBudget/:id", async (req, res) => {
   const { id } = req.params;
   const data = req.body;
-  console.log("data update bg from frontend:", data);
 
   const database = await db.getConnection();
   await database.beginTransaction(); //start transaction
@@ -197,7 +178,6 @@ router.put("/updateBudget/:id", async (req, res) => {
           id,
         ]
       );
-      console.log("updateBudget_result : ", updateBudget_result);
 
       const [updateForm_result] = await database.query(
         `UPDATE Form SET form_status = ?, return_to = ?, return_note = ?, past_return = ? WHERE form_id = ?`,
@@ -209,7 +189,6 @@ router.put("/updateBudget/:id", async (req, res) => {
           data.form_id,
         ]
       );
-      console.log("updateForm_result : ", updateForm_result);
 
       let getEmail;
       if (data.form_status != "return"){
@@ -220,7 +199,6 @@ router.put("/updateBudget/:id", async (req, res) => {
           WHERE form_id = ?`,
           [data.form_id]
         )
-        console.log("getEmail not return", getEmail)
       } else if (data.form_status == "return") {
         if (data.return_to == "professor"){
           // หา professor จากตาราใดตารา: Page_Charge, Conference, หรือ Research_KRIS
@@ -234,7 +212,6 @@ router.put("/updateBudget/:id", async (req, res) => {
             WHERE f.form_id = ?`,
             [data.form_id]
           )
-          console.log("getEmail return_to == professor", getEmail)
         } else {
           [getEmail] = await database.query(
             `SELECT u.user_email 
@@ -243,12 +220,10 @@ router.put("/updateBudget/:id", async (req, res) => {
             WHERE form_id = ?`,
             [data.form_id]
           )
-          console.log("getEmail return not professor", getEmail)
         }
       }
 
       //send email to user
-      console.log("getEmail", getEmail);
       const recipients = [getEmail[0].user_email] //getuser[0].user_email
       const subject =
         "แจ้งเตือนจากระบบสนับสนุนงานวิจัย มีแบบฟอร์มรอการอนุมัติและตรวจสอบ";
@@ -260,7 +235,6 @@ router.put("/updateBudget/:id", async (req, res) => {
       
       await database.commit();
 
-      console.log("Email sent successfully");
       res
         .status(201)
         .json({
@@ -287,21 +261,17 @@ router.put("/updateBudget/:id", async (req, res) => {
 });
 
 router.put("/withdraw/pageCharge/:id", async (req, res) => {
-  console.log("withdraw in pageCharge id:", req.params);
   const { id } = req.params;
   const updates = req.body;
   try {
-    console.log("in pageC_id");
     const [findID] = await db.query(
       `SELECT form_id FROM Form  WHERE pageC_id = ?`,
       [id]
     );
-    console.log("findID", findID[0].form_id);
     const [updateWithdrawMoney] = await db.query(
       `UPDATE Budget SET withdraw = ? WHERE form_id = ?`,
       [updates.withdraw, findID[0].form_id]
     );
-    console.log("updateresult :", updateWithdrawMoney);
 
     const [getUser] = await db.query(
       `SELECT u.user_email 
@@ -310,8 +280,6 @@ router.put("/withdraw/pageCharge/:id", async (req, res) => {
       WHERE p.pageC_id = ?`,
       [id]
     )
-    console.log("getuser", getUser);
-
     //send email to user
     const recipients = [getUser[0].user_email]; //getuser[0].user_email
     const subject =
@@ -432,7 +400,6 @@ router.get("/budgetsPC", async (req, res) => {
       JOIN Form f ON f.form_id = b.form_id
       `
     );
-    console.log("budgets PC", budgets);
     res.status(200).json(budgets[0]);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -453,7 +420,6 @@ router.get("/budgetsConfer", async (req, res) => {
     JOIN Form f ON b.form_id = f.form_id;
       `
     );
-    console.log("budgets CONFER", budgets);
     res.status(200).json(budgets[0]);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -461,21 +427,15 @@ router.get("/budgetsConfer", async (req, res) => {
 });
 
 router.get("/budget/pageCharge/:id", async (req, res) => {
-  console.log("in budget/pageCharge/id");
-
-
   const { id } = req.params;
-  console.log("budget/pageCharge/id", id);
   try {
     const [find_id] = await db.query(
       "SELECT form_id FROM Form WHERE pageC_id = ?",
       [id]
     );
-    console.log("Get find_id budget pc: ", find_id[0]);
     const [pageC] = await db.query("SELECT * FROM Budget WHERE form_id = ?", [
       find_id[0].form_id,
     ]);
-    console.log("Query result:", pageC);
 
     // if (pageC.length === 0) {
     //   return res.status(404).json({ message: "pageC_id not found" });
@@ -489,17 +449,14 @@ router.get("/budget/pageCharge/:id", async (req, res) => {
 
 router.get("/budget/conference/:id", async (req, res) => {
   const { id } = req.params;
-  console.log("budget/conference/id", id);
   try {
     const [find_id] = await db.query(
       "SELECT form_id FROM Form WHERE conf_id = ?",
       [id]
     );
-    console.log("Get find_id budget: ", find_id[0].form_id);
     const [conf] = await db.query("SELECT * FROM Budget WHERE form_id = ?", [
       find_id[0].form_id,
     ]);
-    console.log("Get conf kub: ", conf[0]);
     res.status(200).json(conf[0]);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -508,18 +465,15 @@ router.get("/budget/conference/:id", async (req, res) => {
 
 router.get("/budget/kris/:id", async (req, res) => {
   const { id } = req.params;
-  console.log("budget/kris/id", id)
   try {
     const [find_id] = await db.query(
       "SELECT form_id FROM Form WHERE kris_id = ?",
       [id]
     );
-    console.log("Get find_id budget: ", find_id[0]);
     const [conf] = await db.query(
       "SELECT * FROM Budget WHERE form_id = ?",
       [find_id[0].form_id]
     );
-    console.log("Get conf kub: ", conf[0]);
     res.status(200).json(conf[0]);
   } catch (err) {
     res.status(500).json({ error: err.message });

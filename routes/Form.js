@@ -10,8 +10,6 @@ router.get("/formsOffice", async (req, res) => {
       FROM Form f
       LEFT JOIN Budget b ON f.form_id = b.form_id
     `);
-    // console.log(forms);
-
     let confer = [];
     let pageC = [];
     let kris = [];
@@ -19,7 +17,6 @@ router.get("/formsOffice", async (req, res) => {
     if (forms.length > 0) {
       for (let i = 0; i < forms.length; i++) {
         if (forms[i].conf_id != null) {
-          console.log("1", forms[i]);
           const [conferData] = await db.query(
             "SELECT user_id FROM Conference WHERE conf_id = ?",
             [forms[i].conf_id]
@@ -28,17 +25,12 @@ router.get("/formsOffice", async (req, res) => {
             "SELECT user_id, user_nameth, user_nameeng FROM Users WHERE user_id = ?",
             [conferData[0].user_id]
           );
-          console.log("nameC", nameC);
-
           newC = [];
           newC.push(forms[i].conf_id, nameC[0]);
-          console.log("900", newC);
           confer.push(newC);
         }
 
         if (forms[i].pageC_id != null) {
-          // console.log("form", forms[i])
-          console.log("Page 2", forms[i]);
           const [pageCData] = await db.query(
             "SELECT user_id FROM Page_Charge WHERE pageC_id = ?",
             [forms[i].pageC_id]
@@ -51,19 +43,13 @@ router.get("/formsOffice", async (req, res) => {
             "SELECT accepted FROM File_pdf WHERE pageC_id = ?",
             [forms[i].pageC_id]
           );
-          console.log("nameP", nameP);
-          console.log("fileAccepted", fileAccepted);
 
           newC = [];
           newC.push(forms[i].pageC_id, { ...nameP[0], ...fileAccepted[0] });
-          console.log("newD", newC);
-          //[PC_id , nameP]
-          // pageC.push(nameP[0])
           pageC.push(newC);
         }
 
         if (forms[i].kris_id != null) {
-          console.log("3", forms[i]);
           const [krisData] = await db.query(
             "SELECT user_id FROM Research_KRIS WHERE kris_id = ?",
             [forms[i].kris_id]
@@ -72,16 +58,13 @@ router.get("/formsOffice", async (req, res) => {
             "SELECT user_id, user_nameth, user_nameeng FROM Users WHERE user_id = ?",
             [krisData[0].user_id]
           );
-          console.log("nameK", nameK);
 
           newK = [];
           newK.push(forms[i].kris_id, nameK[0]);
-          console.log("32323", newK);
           kris.push(newK);
         }
       }
     }
-    console.log("pageC3rr3", pageC);
     return res.send({
       forms: forms,
       confer: confer,
@@ -321,14 +304,11 @@ router.get("/allForms", async (req, res) => {
 
 
 router.get("/formPageCharge/:id", async (req, res) => {
-  console.log("get id pc in form");
   const { id } = req.params;
-  console.log("form id: ", id);
   try {
     const [form] = await db.query("SELECT * FROM Form WHERE pageC_id = ?", [
       id,
     ]);
-    console.log("get id pc: ", form[0]);
     res.status(200).json(form[0]);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -336,12 +316,9 @@ router.get("/formPageCharge/:id", async (req, res) => {
 });
 
 router.get("/formConference/:id", async (req, res) => {
-  console.log("get id confer in form");
   const { id } = req.params;
-  console.log("form id: ", id);
   try {
     const [form] = await db.query("SELECT * FROM Form WHERE conf_id = ?", [id]);
-    console.log("get id confer: ", form[0]);
     res.status(200).json(form[0]);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -349,12 +326,9 @@ router.get("/formConference/:id", async (req, res) => {
 });
 
 router.put("/form/:id", async (req, res) => {
-  console.log("in Update form");
   const { id } = req.params;
-  console.log("form id: ", id);
   const updates = req.body;
   try {
-    console.log("updates: ", updates);
     const [form] = await db.query(
       `UPDATE Form SET
     form_type = ?, conf_id = ?, pageC_id = ?, kris_id = ?,
@@ -368,7 +342,6 @@ router.put("/form/:id", async (req, res) => {
         id,
       ]
     );
-    console.log("update form: ", form);
     res.status(200).json({ message: "form updated successfully!", id });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -376,20 +349,14 @@ router.put("/form/:id", async (req, res) => {
 });
 
 router.put("/editForm/:id", async (req, res) => {
-  console.log("editForm in id:", req.params);
   const { id } = req.params;
   const updates = req.body;
   const editDataJson = JSON.stringify(req.body.edit_data);
-  console.log("12345", updates);
-  console.log("12345", editDataJson);
   try {
-    console.log("12345");
-    console.log("in conf_id");
     const [updateOfficeEditForm] = await db.query(
       `UPDATE Form SET edit_data = ? WHERE conf_id = ?`,
       [editDataJson, id]
     );
-    console.log("updateOpi_result :", updateOfficeEditForm);
     res
       .status(200)
       .json({ success: true, message: "Success", data: updateOfficeEditForm });
@@ -400,12 +367,9 @@ router.put("/editForm/:id", async (req, res) => {
 
 // test many id
 router.put("/confirmEditedForm/:id", async (req, res) => {
-  console.log("confirmEditedForm in id:", req.params);
   const { id } = req.params;
   const updates = req.body;
-  console.log("12345", updates);
   try {
-    console.log("in form id type", id);
     let targetField = null;
     if (updates.conf_id != null) {
       targetField = "conf_id";
@@ -417,9 +381,6 @@ router.put("/confirmEditedForm/:id", async (req, res) => {
         `UPDATE Form SET edit_data = ?, editor = ?, professor_reedit = ? WHERE ${targetField} = ?`,
         [null, null, false, updates[targetField]]
       );
-      console.log("updateOpi_result :", updateConfirmEditetForm);
-    } else {
-      console.log("ไม่พบ field ที่ต้องการอัปเดตใน updates");
     }
     res.status(200).json({ success: true, message: "Success" });
   } catch (err) {
@@ -428,18 +389,14 @@ router.put("/confirmEditedForm/:id", async (req, res) => {
 });
 
 router.put("/updatestatus_confer/:id", async (req, res) => {
-  console.log("update status in id:", req.params);
   const { id } = req.params;
   const body = req.body;
 
-  console.log("req.body:", req.body);
-  console.log("req.params", req.params);
   try {
     const [updateStatus] = await db.query(
       `UPDATE Form SET form_status = ?, return_to = ?, return_note = ? WHERE conf_id = ?`,
       [body.form_status, body.return, body.description, id]
     );
-    console.log("updateStatus_result :", updateStatus);
 
     if (data.form_status != "return"){
         const getEmail = await database.query(
@@ -449,7 +406,6 @@ router.put("/updatestatus_confer/:id", async (req, res) => {
           WHERE form_id = ?`,
           [data.form_id]
         )
-        console.log("getEmail not return", getEmail)
       } else if (data.form_status == "return") {
         if (data.return_to == "professor"){
           const getEmail = await database.query(
@@ -459,7 +415,6 @@ router.put("/updatestatus_confer/:id", async (req, res) => {
             WHERE conf_id = ?`,
             [id]
           )
-          console.log("getEmail return_to == professor", getEmail)
         } else {
           const getEmail = await database.query(
             `SELECT u.user_email 
@@ -468,7 +423,6 @@ router.put("/updatestatus_confer/:id", async (req, res) => {
             WHERE form_id = ?`,
             [data.form_id]
           )
-          console.log("getEmail return not professor", getEmail)
         }
       }
 
@@ -490,18 +444,14 @@ router.put("/updatestatus_confer/:id", async (req, res) => {
 });
 
 router.put("/updatestatus_pageC/:id", async (req, res) => {
-  console.log("update status in id:", req.params);
   const { id } = req.params;
   const body = req.body;
 
-  console.log("req.body:", req.body);
-  console.log("req.params", req.params);
   try {
     const [updateStatus] = await db.query(
       `UPDATE Form SET form_status = ?, return_to = ?, return_note = ? WHERE pageC_id = ?`,
       [body.form_status, body.return, body.description, id]
     );
-    console.log("updateStatus_result :", updateStatus);
 
     if (data.form_status != "return"){
         const getEmail = await database.query(
@@ -511,7 +461,6 @@ router.put("/updatestatus_pageC/:id", async (req, res) => {
           WHERE form_id = ?`,
           [data.form_id]
         )
-        console.log("getEmail not return", getEmail)
       } else if (data.form_status == "return") {
         if (data.return_to == "professor"){
           const getEmail = await database.query(
@@ -521,7 +470,6 @@ router.put("/updatestatus_pageC/:id", async (req, res) => {
             WHERE conf_id = ?`,
             [data.id]
           )
-          console.log("getEmail return_to == professor", getEmail)
         } else {
           const getEmail = await database.query(
             `SELECT u.user_email 
@@ -530,7 +478,6 @@ router.put("/updatestatus_pageC/:id", async (req, res) => {
             WHERE form_id = ?`,
             [data.form_id]
           )
-          console.log("getEmail return not professor", getEmail)
         }
       }
 

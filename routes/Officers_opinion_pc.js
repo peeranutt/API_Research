@@ -10,7 +10,6 @@ router.post("/opinionPC", async (req, res) => {
 
   const database = await db.getConnection();
   await database.beginTransaction(); //start transaction
-  console.log("data from frontend: ", data);
 
   try {
     //insert research opinion
@@ -36,7 +35,6 @@ router.post("/opinionPC", async (req, res) => {
       ]
     );
 
-    console.log("create Opinion :", createOpi_result);
 
     //update status from
     const [updateForm_result] = await database.query(
@@ -49,14 +47,11 @@ router.post("/opinionPC", async (req, res) => {
       "SELECT form_id FROM Form WHERE pageC_id = ?",
       [data.pageC_id]
     );
-    console.log("GetID : ", getID);
 
     const formId = getID[0].form_id;
-    console.log("formId : ", formId);
     let getEmail;
 
     if (data.form_status != "return") {
-      console.log("111 officer next step");
       [getEmail] = await database.query(
         `SELECT u.user_email 
         FROM Form f
@@ -65,7 +60,6 @@ router.post("/opinionPC", async (req, res) => {
         [formId]
       );
     } else if (data.return_to == "professor") {
-      console.log("222 return to professor");
       [getEmail] = await database.query(
         `SELECT u.user_email 
         FROM Page_Charge p 
@@ -74,7 +68,6 @@ router.post("/opinionPC", async (req, res) => {
         [data.pageC_id]
       );
     } else {
-      console.log("333 return to officer");
       [getEmail] = await database.query(
         `SELECT u.user_email 
         FROM Form f
@@ -83,7 +76,6 @@ router.post("/opinionPC", async (req, res) => {
         [formId]
       );
     }
-    console.log("getEmail : ", getEmail, getEmail[0].user_email);
 
     const recipients = [getEmail[0].user_email];
     const subject =
@@ -95,7 +87,6 @@ router.post("/opinionPC", async (req, res) => {
     // await sendEmail(recipients, subject, message);
     await database.commit(); //commit transaction
 
-    console.log("Email sent successfully");
     res.status(200).json({ success: true, message: "Success" });
   } catch (error) {
     database.rollback(); //rollback transaction
@@ -107,15 +98,9 @@ router.post("/opinionPC", async (req, res) => {
 });
 
 async function getRecipientEmail(connection, data, pageC_id, formId) {
-
-  console.log("form_status:", data.form_status);
-
   switch (data.form_status) {
 
     case "waitingApproval":
-
-      console.log("Send to research officer");
-
       const [researchRows] = await connection.query(
         `SELECT user_email
          FROM Users
@@ -126,9 +111,6 @@ async function getRecipientEmail(connection, data, pageC_id, formId) {
 
     case "approve":
     case "notApproved":
-
-      console.log("Send result to professor");
-
       const [profRows] = await connection.query(
         `SELECT u.user_email
          FROM Page_Charge p
@@ -142,9 +124,6 @@ async function getRecipientEmail(connection, data, pageC_id, formId) {
     case "return":
 
       if (data.return_to === "professor") {
-
-        console.log("Return to professor");
-
         const [rows] = await connection.query(
           `SELECT u.user_email
            FROM Page_Charge p
@@ -155,9 +134,6 @@ async function getRecipientEmail(connection, data, pageC_id, formId) {
 
         return rows;
       }
-
-      console.log("Return to officer");
-
       const [officerRows] = await connection.query(
         `SELECT u.user_email
          FROM Form f
@@ -169,9 +145,6 @@ async function getRecipientEmail(connection, data, pageC_id, formId) {
       return officerRows;
 
     default:
-
-      console.log("Send to next officer");
-
       const [nextRows] = await connection.query(
         `SELECT u.user_email
          FROM Form f
@@ -193,9 +166,6 @@ router.put("/opinionPC/:id", async (req, res) => {
 
   try {
     await connection.beginTransaction();
-
-    console.log("data from frontend wine:", data);
-
     //UPDATE officers_opinion_pc
     const fields = [];
     const values = [];
@@ -254,12 +224,7 @@ router.put("/opinionPC/:id", async (req, res) => {
     // GET EMAIL
     let emailRows = [];
 
-    console.log("form_status:", data.form_status);
-
     if (data.form_status === "waitingApproval") {
-
-      console.log("Send to research officer");
-
       const [rows] = await connection.query(
         `SELECT user_email
         FROM Users
@@ -270,7 +235,6 @@ router.put("/opinionPC/:id", async (req, res) => {
       emailRows = rows;
 
     } else if (data.form_status === "approve" || data.form_status === "notApproved") {
-      console.log("Send result to professor");
       const [rows] = await connection.query(
         `SELECT u.user_email
         FROM Page_Charge p
@@ -282,7 +246,6 @@ router.put("/opinionPC/:id", async (req, res) => {
       emailRows = rows;
 
     } else if (data.form_status === "return" && data.return_to === "professor") {
-      console.log("Return to professor");
       const [rows] = await connection.query(
         `SELECT u.user_email
         FROM Page_Charge p
@@ -294,7 +257,6 @@ router.put("/opinionPC/:id", async (req, res) => {
       emailRows = rows;
 
     } else if (data.form_status === "return") {
-      console.log("Return to officer");
       const [rows] = await connection.query(
         `SELECT u.user_email
         FROM Form f
@@ -306,7 +268,6 @@ router.put("/opinionPC/:id", async (req, res) => {
       emailRows = rows;
 
     } else {
-      console.log("Send to next officer");
       const [rows] = await connection.query(
         `SELECT u.user_email
         FROM Form f
@@ -321,8 +282,6 @@ router.put("/opinionPC/:id", async (req, res) => {
     if (!emailRows.length) {
       throw new Error("No recipient email found");
     }
-
-    console.log("Email rows: ", emailRows);
     const recipient = emailRows[0].user_email;
 
     // SEND EMAIL (หลัง commit)
@@ -338,8 +297,6 @@ router.put("/opinionPC/:id", async (req, res) => {
 
     // await sendEmail([recipient], subject, message);
     await connection.commit();
-    
-    console.log("Email sent to:", recipient);
     res.status(200).json({
       success: true,
       message: "Update completed",
@@ -373,7 +330,6 @@ router.get("/opinionPC/:id", async (req, res) => {
     if (opinionPC.length === 0) {
       return res.status(404).json({ message: "opinionPC not found" });
     }
-    console.log("Get opinionPC: ", opinionPC[0]);
     res.status(200).json(opinionPC[0]);
   } catch (err) {
     res.status(500).json({ error: err.message });
