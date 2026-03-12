@@ -1,6 +1,6 @@
 const express = require("express");
 const db = require("../config/db");
-const country = require("./Country.json");
+const country = require("../data/Country.json");
 
 router = express.Router();
 
