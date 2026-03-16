@@ -13,7 +13,7 @@ const router = express.Router();
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    const dir = "uploads"; //สร้างโฟเดอร์ 'uploads'
+    const dir = path.join(__dirname, '..', 'uploads') //สร้างโฟเดอร์ 'uploads'
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir);
     }
