@@ -2,9 +2,8 @@ const express = require("express");
 const db = require("../config/db");
 
 router = express.Router();
-//data
+
 router.post('/score', async (req, res) => {
-    console.log("in post score")
     const data = req.body;
     try {
         const [result] = await db.query(
@@ -12,11 +11,9 @@ router.post('/score', async (req, res) => {
           [data.conf_id, data.score_type, data.sjr_score || null, data.sjr_year || null,
             data.hindex_score || null, data.hindex_year || null, data.score_result || null, data.core_rank || null]
         );
-        console.log(data)
         res.status(201).json({ message: "Score created successfully!", id: result.insertId });
       } catch (err) {
         res.status(500).json({ error: err.message });
-        console.log(err.message);
     }
 });
 
@@ -36,7 +33,6 @@ router.get("/score/:id", async (req, res) => {
       "SELECT * FROM Score WHERE conf_id = ?",
       [id]
     );
-    console.log("Get score: ", score[0]);
     res.status(200).json(score[0]);
   } catch (err) {
     res.status(500).json({ error: err.message });

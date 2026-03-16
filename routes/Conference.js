@@ -232,7 +232,6 @@ router.post("/conference",
     try {
       //check missing files
       if (missingFiles.length > 0) {
-        console.log(`กรุณาอัปโหลดไฟล์: ${missingFiles.join(", ")}`);
         return res.status(400).json({
           error: `กรุณาอัปโหลดไฟล์: ${missingFiles.join(", ")}`,
         });
@@ -241,7 +240,6 @@ router.post("/conference",
       //check ConferSchema
       await ConferSchema.validate(req.body, { abortEarly: false });
     } catch (error) {
-      console.log("error", error);
       return res
         .status(400)
         .json({ error: error.details.map((err) => err.message) });
@@ -252,8 +250,6 @@ router.post("/conference",
 
     const database = await db.getConnection();
     await database.beginTransaction(); //start transaction
-
-    console.log("conferdata : ", conferenceData);
 
     try {
       //query insert data to Conference
@@ -331,7 +327,6 @@ router.post("/conference",
         scoreData,
       ]);
 
-      console.log("score_result", score_result);
       //data for File_pdf
       const fileData = {
         type: "Conference",
@@ -347,12 +342,10 @@ router.post("/conference",
         fx_rate_document: conferenceFile.fx_rate_document[0].filename,
         conf_proof: conferenceFile.conf_proof[0].filename,
       };
-      console.log("fileData", fileData);
       //insert data to File_pdf
       const [file_result] = await database.query("INSERT INTO File_pdf SET ?", [
         fileData,
       ]);
-      console.log("file_result", file_result);
 
       //data for Form
       const formData = {
@@ -365,7 +358,6 @@ router.post("/conference",
       const [form_result] = await database.query("INSERT INTO Form SET ?", [
         formData,
       ]);
-      console.log("form_result", form_result);
 
       //insert data to Notification
       const [notification_result] = await database.query(
@@ -378,7 +370,6 @@ router.post("/conference",
           conferenceData.conf_research,
         ]
       );
-      console.log("notification_result", notification_result);
 
       const getOfficer = await database.query(
         `SELECT user_email FROM Users WHERE user_role = "hr"`
@@ -388,7 +379,6 @@ router.post("/conference",
         `SELECT user_nameth FROM Users WHERE user_id = ?`,
         [conferenceData.user_id]
       );
-      console.log("getuser", getuser[0][0]);
 
       // const recipients = ["64070075@it.kmitl.ac.th"];
       const recipients = [getOfficer[0][0].user_email];;
@@ -426,7 +416,6 @@ router.get("/conference/:id", async (req, res) => {
       return res.status(404).json({ message: "conference not found" });
     }
 
-    console.log("Get conference: ", conference[0]);
     res.status(200).json(conference[0]);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -690,7 +679,6 @@ router.put(
         ]
       );
 
-      console.log("✅ Update successful:", update);
       res.json({ success: true, message: "อัปเดตข้อมูลสำเร็จ" });
     } catch (error) {
       console.error("❌ Error updating database:", error.message);
@@ -706,8 +694,6 @@ router.get("/getFileConf", async (req, res) => {
     `SELECT full_page, date_published_journals, published_journals, accepted, q_proof, call_for_paper, fee_receipt, fx_rate_document, conf_proof FROM File_pdf WHERE conf_id = ?`,
     [conf_id]
   );
-
-  console.log("file", file);
 
   const url = baseURL.parsed.VITE_API_BASE_URL;
 

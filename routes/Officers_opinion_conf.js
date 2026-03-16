@@ -41,7 +41,6 @@ router.post("/opinionConf", async (req, res) => {
         data.dean_doc_submit_date || null,
       ]
     );
-    console.log("createOpi_result :", createOpi_result);
 
     //update status form
     const [updateForm_result] = await database.query(
@@ -54,9 +53,6 @@ router.post("/opinionConf", async (req, res) => {
       "SELECT form_id FROM Form WHERE conf_id = ?",
       [data.conf_id]
     );
-    console.log("GetID : ", getID);
-
-    console.log("data.user_confer :", data.user_confer);
 
     if (data.user_confer == 1) {
       const [rows] = await database.query(
@@ -72,18 +68,13 @@ router.post("/opinionConf", async (req, res) => {
           [data.user_confer, userId]
         );
 
-        console.log("add user_confer succ");
-      } else {
-        console.log("No user_id found for conf_id:", data.conf_id);
       }
     }
 
     const formId = getID[0].form_id;
-console.log("formId : ", formId);
     let getEmail;
 
     if (data.form_status != "return") {
-      console.log("111 officer next step");
       [getEmail] = await database.query(
         `SELECT u.user_email 
         FROM Form f
@@ -92,7 +83,6 @@ console.log("formId : ", formId);
         [formId]
       );
     } else if (data.return_to == "professor") {
-      console.log("222 return to professor");
       [getEmail] = await database.query(
         `SELECT u.user_email 
         FROM Conference c 
@@ -101,7 +91,6 @@ console.log("formId : ", formId);
         [data.conf_id]
       );
     } else {
-      console.log("333 return to officer");
       [getEmail] = await database.query(
         `SELECT u.user_email 
         FROM Form f
@@ -110,8 +99,6 @@ console.log("formId : ", formId);
         [formId]
       );
     }
-
-    console.log("getEmail : ", getEmail, getEmail[0].user_email);
     const recipients = [getEmail[0].user_email]; //getuser[0].user_email
     const subject =
       "แจ้งเตือนจากระบบสนับสนุนงานวิจัย มีแบบฟอร์มขอรับการสนับสนุนเข้าร่วมประชุมรอการอนุมัติและตรวจสอบ";
@@ -121,7 +108,6 @@ console.log("formId : ", formId);
 
     // await sendEmail(recipients, subject, message);
     await database.commit(); //commit transaction
-    console.log("Email sent successfully");
     res.status(200).json({ success: true, message: "Success" });
   } catch (error) {
     database.rollback(); //rollback transaction
@@ -133,15 +119,9 @@ console.log("formId : ", formId);
 });
 
 async function getRecipientEmail(connection, data, confId, formId) {
-
-  console.log("form_status:", data.form_status);
-
   switch (data.form_status) {
 
     case "waitingApproval":
-
-      console.log("Send to HR");
-
       const [hrRows] = await connection.query(
         `SELECT user_email
          FROM Users
@@ -152,9 +132,6 @@ async function getRecipientEmail(connection, data, confId, formId) {
 
     case "approve":
     case "notApproved":
-
-      console.log("Send result to professor");
-
       const [profRows] = await connection.query(
         `SELECT u.user_email
          FROM Conference c
@@ -169,8 +146,6 @@ async function getRecipientEmail(connection, data, confId, formId) {
 
       if (data.return_to === "professor") {
 
-        console.log("Return to professor");
-
         const [rows] = await connection.query(
           `SELECT u.user_email
            FROM Conference c
@@ -182,7 +157,6 @@ async function getRecipientEmail(connection, data, confId, formId) {
         return rows;
       }
 
-      console.log("Return to officer");
 
       const [officerRows] = await connection.query(
         `SELECT u.user_email
@@ -195,8 +169,6 @@ async function getRecipientEmail(connection, data, confId, formId) {
       return officerRows;
 
     default:
-
-      console.log("Send to next officer");
 
       const [nextRows] = await connection.query(
         `SELECT u.user_email
@@ -310,7 +282,6 @@ router.put("/opinionConf/:id", async (req, res) => {
 
     // await sendEmail([recipient], subject, message);
 
-    console.log("Email sent to:", recipient);
 
     await connection.commit();
     res.status(200).json({
@@ -361,9 +332,7 @@ router.get("/opinionConf/:id", async (req, res) => {
       `,
       [id]
     );
-    console.log("opinionConf", opinionConf[0]);
 
-    console.log("Get opinionConf: ", opinionConf[0]);
     res.status(200).json(opinionConf[0]);
   } catch (err) {
     res.status(500).json({ error: err.message });

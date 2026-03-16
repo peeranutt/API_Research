@@ -4,10 +4,7 @@ const jwt = require("jsonwebtoken");
 const authenticate = (req, res, next) => {
     const token = req.cookies.token;
 
-    console.log("token received:", token);
-
     if (!token){
-      console.log("No token found");
       return res.status(401).json({ message: "การเข้าสู่ระบบมีปัญหา" });
     }
 
@@ -16,7 +13,6 @@ const authenticate = (req, res, next) => {
       req.user = decoded;
       next();
     } catch (error) {
-      console.log("Invalid Token: ", error);
       return res.status(403).json({message: "Invalid token"});
 
     }

@@ -4,10 +4,10 @@ const db = require("../config/db");
 const router = express.Router();
 
 router.get("/all_summary_conference/:year", async (req, res) => {
-  const { year } = req.params
+  const { year } = req.params;
   try {
     const [Summary] = await db.query(
-    `SELECT
+      `SELECT
       u.user_nameth,
       c.conf_research,
       c.conf_name,
@@ -33,11 +33,10 @@ router.get("/all_summary_conference/:year", async (req, res) => {
       LEFT JOIN Form f ON c.conf_id = f.conf_id
       LEFT JOIN Budget b ON f.form_id = b.form_id
       WHERE f.form_status = "approve"
-      AND b.budget_year = ?;`, [year]
+      AND b.budget_year = ?;`,
+      [year],
     );
-    
-    console.log("Summary confer", Summary)
-    
+
     res.status(200).json(Summary);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -45,10 +44,10 @@ router.get("/all_summary_conference/:year", async (req, res) => {
 });
 
 router.get("/all_summary_page_charge/:year", async (req, res) => {
-  const { year } = req.params
+  const { year } = req.params;
   try {
     const [Summary] = await db.query(
-    `SELECT
+      `SELECT
       p.pageC_id,
       u.user_nameth,
       p.name_co_researchers,
@@ -70,10 +69,10 @@ router.get("/all_summary_page_charge/:year", async (req, res) => {
       LEFT JOIN Form f ON p.pageC_id = f.pageC_id
       LEFT JOIN Budget b ON f.form_id = b.form_id
       WHERE f.form_status = "approve"
-      AND b.budget_year = ?;`, [year]
+      AND b.budget_year = ?;`,
+      [year],
     );
 
-    console.log("Summary pc", Summary);
     res.status(200).json([Summary]);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -98,9 +97,9 @@ router.get("/all_summary_kris", async (req, res) => {
         FROM Research_KRIS k
         JOIN Users u ON k.user_id = u.user_id
         LEFT JOIN Form f ON k.kris_id = f.kris_id
-        WHERE f.form_status = "approve";`
+        WHERE f.form_status = "approve";`,
     );
-    console.log("Summary krid", Summary)
+
     res.status(200).json(Summary);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -108,11 +107,10 @@ router.get("/all_summary_kris", async (req, res) => {
 });
 
 router.get("/remainingConference/:year", async (req, res) => {
-  const { year } = req.params
-  console.log("year", year)
+  const { year } = req.params;
   try {
-   const [Summary] = await db.query(
-  `SELECT
+    const [Summary] = await db.query(
+      `SELECT
     SUM(b.withdraw) AS total_withdraw,
     b.budget_year,
     b.Conference_amount,
@@ -125,11 +123,9 @@ router.get("/remainingConference/:year", async (req, res) => {
     AND b.budget_year = ?
   GROUP BY b.budget_year, b.Conference_amount, b.total_remaining_credit_limit, f.form_type
   LIMIT 1;`,
-  [year]
-);
+      [year],
+    );
 
-
-    console.log("remainingConference", Summary)
     res.status(200).json(Summary);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -137,7 +133,7 @@ router.get("/remainingConference/:year", async (req, res) => {
 });
 
 router.get("/remainingPc/:year", async (req, res) => {
-  const { year } = req.params
+  const { year } = req.params;
   try {
     const [Summary] = await db.query(
       `SELECT
@@ -152,9 +148,10 @@ router.get("/remainingPc/:year", async (req, res) => {
           AND f.form_type = "Page_Charge"
           AND b.budget_year = ?
         GROUP BY b.budget_year, b.Page_Charge_amount, b.total_remaining_credit_limit, f.form_type
-        LIMIT 1;`, [year]
+        LIMIT 1;`,
+      [year],
     );
-    console.log("remainingPc", Summary)
+
     res.status(200).json(Summary);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -162,7 +159,7 @@ router.get("/remainingPc/:year", async (req, res) => {
 });
 
 router.get("/count/:year", async (req, res) => {
-  const { year } = req.params
+  const { year } = req.params;
   try {
     const [Summary] = await db.query(
       `SELECT f.form_type, COUNT(*) AS total_count
@@ -171,9 +168,10 @@ router.get("/count/:year", async (req, res) => {
         WHERE f.form_status = 'approve'
           AND f.form_type IN ('Conference', 'Page_Charge', 'Research_KRIS')
           AND b.budget_year = ?
-        GROUP BY f.form_type;`, [year]
+        GROUP BY f.form_type;`,
+      [year],
     );
-    console.log("count", Summary)
+
     res.status(200).json(Summary);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -181,7 +179,7 @@ router.get("/count/:year", async (req, res) => {
 });
 
 router.get("/count_confer_withdraw/:year", async (req, res) => {
-  const { year } = req.params
+  const { year } = req.params;
   try {
     const [Summary] = await db.query(
       `SELECT
@@ -212,9 +210,9 @@ router.get("/count_confer_withdraw/:year", async (req, res) => {
         AND c.country_conf = 'abroad'
         AND b.budget_year = ?
         GROUP BY c.withdraw
-        ORDER BY c.withdraw;`, [year]
+        ORDER BY c.withdraw;`,
+      [year],
     );
-    console.log("count_confer_withdraw", Summary)
     res.status(200).json(Summary);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -222,7 +220,7 @@ router.get("/count_confer_withdraw/:year", async (req, res) => {
 });
 
 router.get("/count_confer_country/:year", async (req, res) => {
-  const { year } = req.params
+  const { year } = req.params;
   try {
     const [Summary] = await db.query(
       `SELECT c.location, c.withdraw, c.country_conf,
@@ -258,7 +256,8 @@ router.get("/count_confer_country/:year", async (req, res) => {
         WHERE f.form_status = "approve"
         AND b.budget_year = ?
         GROUP BY region_category, c.location, c.withdraw, c.country_conf
-        ORDER BY region_category ASC, c.location ASC;`, [year]
+        ORDER BY region_category ASC, c.location ASC;`,
+      [year],
     );
 
     // จัดกลุ่มข้อมูลตาม region_category
@@ -274,7 +273,6 @@ router.get("/count_confer_country/:year", async (req, res) => {
 
       return acc;
     }, {});
-    console.log("count_confer_country", Summary)
     res.status(200).json(groupedSummary);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -282,8 +280,7 @@ router.get("/count_confer_country/:year", async (req, res) => {
 });
 
 router.get("/count_confer_thai/:year", async (req, res) => {
-  const { year } = req.params
-  console.log("y in count cf ct", year)
+  const { year } = req.params;
   try {
     const [Summary] = await db.query(
       `SELECT c.location, c.country_conf,
@@ -312,9 +309,9 @@ router.get("/count_confer_thai/:year", async (req, res) => {
     AND b.budget_year = ?
     GROUP BY c.location, c.country_conf
     ORDER BY c.location ASC;
-`, [year]
+`,
+      [year],
     );
-console.log("count_confer_thai", Summary)
     res.status(200).json(Summary);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -332,13 +329,12 @@ router.get("/eachyears", async (req, res) => {
     SUM(CASE WHEN f.form_type = 'Page_Charge' THEN b.withdraw ELSE 0 END) AS total_withdraw_pagecharge
     FROM Budget b
 LEFT JOIN Form f ON b.form_id = f.form_id
-WHERE b.budget_year >= (YEAR(CURRENT_DATE) - 3) 
+WHERE b.budget_year >= (YEAR(CURRENT_DATE) - 3)
 AND f.form_status = "approve"
 GROUP BY b.budget_year
 ORDER BY b.budget_year DESC;
-`
+`,
   );
-console.log("eachyears", Summary)
   res.status(200).json(Summary);
 });
 
@@ -403,13 +399,12 @@ ORDER BY
     // จัดเรียง form_type
     group.forms.sort(
       (a, b) =>
-        allFormTypes.indexOf(a.form_type) - allFormTypes.indexOf(b.form_type)
+        allFormTypes.indexOf(a.form_type) - allFormTypes.indexOf(b.form_type),
     );
   });
 
   const finalResult = Object.values(grouped);
-  
-  console.log("all_sum", finalResult);
+
   res.status(200).json(finalResult);
 });
 

@@ -56,7 +56,6 @@ router.get("/notification/:id", async (req, res) => {
 router.get("/status_notification/:status", async (req, res) => {
   const { status } = req.params; //ฝ่ายบริหารงานวิจัย, ฝ่ายวิจัย, ฝ่ายวิชาการ, ฝ่ายบริหาร
 
-  console.log("status ", status);
 
   try {
     const [mynotification] = await db.query(
@@ -76,29 +75,4 @@ router.get("/status_notification/:status", async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
-
-//update is_read Professors
-// router.put("/notifications/update_read", async (req, res) => {
-//   try {
-//     const { notiIds } = req.body;
-//     console.log("notiIds ", notiIds);
-
-//     if (!notiIds || notiIds.length === 0) {
-//       return res
-//         .status(400)
-//         .json({ error: "ไม่มี Notification ที่ต้องอัปเดต" });
-//     }
-
-//     // อัปเดตสถานะ `is_read = 1` ในฐานข้อมูล
-//     const [result] = await db.query(
-//       `UPDATE notification SET is_read = 1 WHERE noti_id IN (?)`,
-//       [notiIds]
-//     );
-
-//     res.json({ message: `อัปเดตสำเร็จ ${result.affectedRows} รายการ` });
-//   } catch (error) {
-//     console.error("Error updating notifications:", error);
-//     res.status(500).json({ error: "เกิดข้อผิดพลาดในการอัปเดต" });
-//   }
-// });
 exports.router = router;
