@@ -439,20 +439,17 @@ router.put(
     const updates = req.body;
 
     const connection = await db.getConnection();
-
     try {
       await connection.beginTransaction();
 
       const professorReedit = updates.professor_reedit === "true";
 
-      const editDataJson = updates.edit_data
+      const parsed = updates.edit_data
         ? JSON.parse(updates.edit_data)
-        : [];
+        : { edit_data: [], score: [] };
 
-      const editDataJsonScore = updates.score
-        ? JSON.parse(updates.score)
-        : [];
-
+      const editDataJson = parsed.edit_data || [];
+      const editDataJsonScore = parsed.score || [];
       const files = req.files;
 
       // UPDATE Conference

@@ -35,7 +35,6 @@ router.post("/opinionPC", async (req, res) => {
       ]
     );
 
-
     //update status from
     const [updateForm_result] = await database.query(
       "UPDATE Form SET form_status = ?, return_note = ?, return_to = ?, past_return = ? WHERE pageC_id = ?",
@@ -194,10 +193,7 @@ router.put("/opinionPC/:id", async (req, res) => {
     // UPDATE FORM STATUS
     await connection.query(
       `UPDATE Form 
-       SET form_status = ?, 
-           return_to = ?, 
-           return_note = ?, 
-           past_return = ?
+       SET form_status = ?, return_to = ?, return_note = ?, past_return = ?
        WHERE pageC_id = ?`,
       [
         data.form_status,// "research"
@@ -210,9 +206,7 @@ router.put("/opinionPC/:id", async (req, res) => {
 
     //GET FORM ID
     const [formRows] = await connection.query(
-      `SELECT form_id 
-       FROM Form 
-       WHERE pageC_id = ?`,
+      `SELECT form_id FROM Form WHERE pageC_id = ?`,
       [id]
     );
 
@@ -282,7 +276,7 @@ router.put("/opinionPC/:id", async (req, res) => {
     if (!emailRows.length) {
       throw new Error("No recipient email found");
     }
-    const recipient = emailRows[0].user_email;
+    const recipients = [emailRows[0].user_email];
 
     // SEND EMAIL (หลัง commit)
     const subject =
@@ -295,7 +289,7 @@ router.put("/opinionPC/:id", async (req, res) => {
       กรุณาอย่าตอบกลับอีเมลนี้ เนื่องจากเป็นระบบอัตโนมัติ
       `;
 
-    // await sendEmail([recipient], subject, message);
+      // await sendEmail(recipients, subject, message);
     await connection.commit();
     res.status(200).json({
       success: true,

@@ -1,6 +1,7 @@
 USE ResearchAdministration;
 -- Set consistent collation for database
 ALTER DATABASE researchadministration CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+ALTER TABLE Users CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 -- ปิดการตรวจสอบ Foreign Key ก่อน
 SET FOREIGN_KEY_CHECKS = 0;
 

@@ -17,7 +17,7 @@ router.post("/opinionConf", async (req, res) => {
       `INSERT INTO officers_opinion_conf
           (hr_id, research_id, associate_id, dean_id, conf_id,
           c_hr_result, c_hr_reason, c_hr_note, c_quality, c_comment_quality, c_comment_quality_good, 
-          c_research_result, c_research_reason, c_associate_result, c_dean_result,
+          c_research_result, c_research_reason, c_associate_result, c_dean_result, hr_doc_submit_date
           research_doc_submit_date, associate_doc_submit_date, dean_doc_submit_date)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
@@ -36,6 +36,7 @@ router.post("/opinionConf", async (req, res) => {
         data.c_research_reason || null,
         data.c_associate_result || null,
         data.c_dean_result || null,
+        data.hr_doc_submit_date,
         data.research_doc_submit_date || null,
         data.associate_doc_submit_date || null,
         data.dean_doc_submit_date || null,
@@ -192,11 +193,11 @@ router.put("/opinionConf/:id", async (req, res) => {
   try {
     await connection.beginTransaction();
 
-    // UPDATE opinion
-    if (data.updated_data?.length) {
-      const fields = [];
-      const values = [];
+    const fields = [];
+    const values = [];
 
+    // UPDATE opinion
+    if (data.updated_data && data.updated_data.length > 0) {
       data.updated_data.forEach((item) => {
         fields.push(`${item.field} = ?`);
         values.push(
@@ -231,14 +232,14 @@ router.put("/opinionConf/:id", async (req, res) => {
     );
 
     // GET form_id
-    const [[form]] = await connection.query(
+    const [[formRows]] = await connection.query(
       `SELECT form_id FROM Form WHERE conf_id = ?`,
       [id]
     );
 
-    if (!form) throw new Error("Form not found");
+    if (!formRows) throw new Error("Form not found");
 
-    const formId = form.form_id;
+    const formId = formRows.form_id;
 
     // UPDATE user_confer
     if (data.user_confer == 1) {
@@ -256,32 +257,72 @@ router.put("/opinionConf/:id", async (req, res) => {
     }
 
     // GET EMAIL
-    const emailRows = await getRecipientEmail(
-      connection,
-      data,
-      id,
-      formId
-    );
+    let emailRows = [];
 
-    if (!emailRows.length) {
-      throw new Error("No email found");
+    if (data.form_status === "waitingApproval") {
+      const [rows] = await connection.query(
+        `SELECT user_email
+        FROM Users
+        WHERE user_role = ?`,
+        ["hr"]
+      );
+
+      emailRows = rows;
+
+    } else if (data.form_status === "approve" || data.form_status === "notApproved") {
+      const [rows] = await connection.query(
+        `SELECT u.user_email
+        FROM Conference c 
+        JOIN Users u ON c.user_id = u.user_id
+        WHERE conf_id = ?`,
+        [id]
+      );
+
+      emailRows = rows;
+
+    } else if (data.form_status === "return" && data.return_to === "professor") {
+      const [rows] = await connection.query(
+        `SELECT u.user_email
+        FROM Conference c 
+        JOIN Users u ON c.user_id = u.user_id
+        WHERE conf_id = ?`,
+        [id]
+      );
+
+      emailRows = rows;
+
+    } else if (data.form_status === "return") {
+      const [rows] = await connection.query(
+        `SELECT u.user_email
+        FROM Form f
+        JOIN Users u ON f.return_to = u.user_role
+        WHERE f.form_id = ?`,
+        [formId]
+      );
+    } else {
+      const [rows] = await connection.query(
+        `SELECT u.user_email
+        FROM Conference c 
+        JOIN Users u ON c.user_id = u.user_id
+        WHERE conf_id = ?`,
+        [id]
+      );
+
+      emailRows = rows;
+
     }
 
-    const recipient = emailRows[0].user_email;
-
-    // SEND EMAIL
+    if (!emailRows.length) {
+      throw new Error("No recipient email found");
+    }
+    const recipients = [emailRows[0].user_email]; //getuser[0].user_email
     const subject =
-      "แจ้งเตือนจากระบบสนับสนุนงานวิจัย มีแบบฟอร์มรอการตรวจสอบ";
-
+      "แจ้งเตือนจากระบบสนับสนุนงานวิจัย มีแบบฟอร์มขอรับการสนับสนุนเข้าร่วมประชุมรอการอนุมัติและตรวจสอบ";
     const message = `
-      มีแบบฟอร์มรอการดำเนินการ
-      กรุณาเข้าสู่ระบบเพื่อดำเนินการต่อ
+      มีแบบฟอร์มขอรับการสนับสนุนเข้าร่วมประชุมรอการอนุมัติและตรวจสอบ โปรดเข้าสู่ระบบสนับสนุนงานบริหารงานวิจัยเพื่อทำการอนุมัติและตรวจสอบข้อมูล
+      กรุณาอย่าตอบกลับอีเมลนี้ เนื่องจากเป็นระบบอัตโนมัติที่ไม่สามารถตอบกลับได้`;
 
-      กรุณาอย่าตอบกลับอีเมลนี้ เนื่องจากเป็นระบบอัตโนมัติ
-    `;
-
-    // await sendEmail([recipient], subject, message);
-
+    // await sendEmail(recipients, subject, message);
 
     await connection.commit();
     res.status(200).json({
