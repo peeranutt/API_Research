@@ -1,5 +1,6 @@
 const express = require("express");
 const db = require("../config/db");
+const { getRecipientEmail } = require("../utils/emailRecipient");
 
 router = express.Router();
 
@@ -390,44 +391,33 @@ router.put("/confirmEditedForm/:id", async (req, res) => {
 
 router.put("/updatestatus_confer/:id", async (req, res) => {
   const { id } = req.params;
-  const body = req.body;
-
+  const data = req.body;
+  const returnTo = data.return_to ?? data.return ?? null;
+  
+  const database = await db.getConnection();
+  await database.beginTransaction(); //start transaction
   try {
-    const [updateStatus] = await db.query(
+    const [updateStatus] = await database.query(
       `UPDATE Form SET form_status = ?, return_to = ?, return_note = ? WHERE conf_id = ?`,
-      [body.form_status, body.return, body.description, id]
+      [data.form_status, returnTo, data.description, id]
     );
 
-    if (data.form_status != "return"){
-        const getEmail = await database.query(
-          `SELECT u.user_email 
-          FROM Form f
-          JOIN Users u ON f.form_status = u.user_role
-          WHERE form_id = ?`,
-          [data.form_id]
-        )
-      } else if (data.form_status == "return") {
-        if (data.return_to == "professor"){
-          const getEmail = await database.query(
-            `SELECT u.user_email 
-            FROM Conference c 
-            JOIN Users u ON c.user_id = u.user_id
-            WHERE conf_id = ?`,
-            [id]
-          )
-        } else {
-          const getEmail = await database.query(
-            `SELECT u.user_email 
-            FROM Form f
-            JOIN Users u ON f.return_to = u.user_role
-            WHERE form_id = ?`,
-            [data.form_id]
-          )
-        }
-      }
+    const [getID] = await database.query(
+      "SELECT form_id FROM Form WHERE conf_id = ?",
+      [id]
+    );
 
-    //send email to user
-    const recipients = [getEmail[0][0].user_email];
+    if (!getID.length) {
+      throw new Error(`Form not found for conf_id ${id}`);
+    }
+
+    const formId = getID[0].form_id;
+    const recipientEmail = await getRecipientEmail(
+      database,
+      { ...data, return_to: returnTo },
+      formId
+    );
+    const recipients = recipientEmail ? [recipientEmail] : [];
     const subject =
       "แจ้งเตือนจากระบบสนับสนุนงานวิจัย มีการตีกลับแบบฟอร์มขอรับการสนับสนุนเข้าร่วมประชุม";
     const message = `
@@ -445,44 +435,34 @@ router.put("/updatestatus_confer/:id", async (req, res) => {
 
 router.put("/updatestatus_pageC/:id", async (req, res) => {
   const { id } = req.params;
-  const body = req.body;
+  const data = req.body;
+  const returnTo = data.return_to ?? data.return ?? null;
+
+  const database = await db.getConnection();
+  await database.beginTransaction(); //start transaction
 
   try {
-    const [updateStatus] = await db.query(
+    const [updateStatus] = await database.query(
       `UPDATE Form SET form_status = ?, return_to = ?, return_note = ? WHERE pageC_id = ?`,
-      [body.form_status, body.return, body.description, id]
+      [data.form_status, returnTo, data.description, id]
     );
 
-    if (data.form_status != "return"){
-        const getEmail = await database.query(
-          `SELECT u.user_email 
-          FROM Form f
-          JOIN Users u ON f.form_status = u.user_role
-          WHERE form_id = ?`,
-          [data.form_id]
-        )
-      } else if (data.form_status == "return") {
-        if (data.return_to == "professor"){
-          const getEmail = await database.query(
-            `SELECT u.user_email 
-            FROM Conference c 
-            JOIN Users u ON c.user_id = u.user_id
-            WHERE conf_id = ?`,
-            [data.id]
-          )
-        } else {
-          const getEmail = await database.query(
-            `SELECT u.user_email 
-            FROM Form f
-            JOIN Users u ON f.return_to = u.user_role
-            WHERE form_id = ?`,
-            [data.form_id]
-          )
-        }
-      }
+    const [getID] = await database.query(
+      "SELECT form_id FROM Form WHERE pageC_id = ?",
+      [id]
+    );
 
-    //send email to user
-    const recipients = [getEmail[0][0].user_email];
+    if (!getID.length) {
+      throw new Error(`Form not found for pageC_id ${id}`);
+    }
+
+    const formId = getID[0].form_id;
+    const recipientEmail = await getRecipientEmail(
+      database,
+      { ...data, return_to: returnTo },
+      formId
+    );
+    const recipients = recipientEmail ? [recipientEmail] : [];
     const subject =
       "แจ้งเตือนจากระบบสนับสนุนงานวิจัย มีการตีกลับแบบฟอร์มขอรับการสนับสนุนเข้าร่วมประชุม";
     const message = `

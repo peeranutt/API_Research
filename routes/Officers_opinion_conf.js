@@ -17,9 +17,9 @@ router.post("/opinionConf", async (req, res) => {
       `INSERT INTO officers_opinion_conf
           (hr_id, research_id, associate_id, dean_id, conf_id,
           c_hr_result, c_hr_reason, c_hr_note, c_quality, c_comment_quality, c_comment_quality_good, 
-          c_research_result, c_research_reason, c_associate_result, c_dean_result, hr_doc_submit_date
+          c_research_result, c_research_reason, c_associate_result, c_dean_result, hr_doc_submit_date,
           research_doc_submit_date, associate_doc_submit_date, dean_doc_submit_date)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         data.hr_id || null,
         data.research_id || null,
