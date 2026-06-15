@@ -18,7 +18,7 @@ async function sendEmail(recipients, subject, message) {
       from: `"RESEARCH ADMINISTRATION" <${process.env.EMAIL_USER}>`, // sender address
       to: email,
       subject: subject,
-      text: message,
+      text: message + "\n\n---\nhttps://servicehub.it.kmitl.ac.th/rass/",
     };
 
     try {
